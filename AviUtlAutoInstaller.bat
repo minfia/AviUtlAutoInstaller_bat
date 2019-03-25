@@ -48,7 +48,7 @@ set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 set X264GUIEX_VER=2.59
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.zip
-set PSDTOOLKIT_VER=v0.2beta34
+set PSDTOOLKIT_VER=v0.2beta35
 set PSDTOOLKIT_ZIP=psdtoolkit_%PSDTOOLKIT_VER%.zip
 
 @rem AviUtlディレクトリ名
@@ -304,6 +304,8 @@ rmdir /s /q "%AVIUTL_DIR%"
 exit /b
 
 @rem リリースノート
+@rem 2019/3/26
+@rem     PSDToolKitのバージョン変更に対応
 @rem 2019/3/2
 @rem     空白文字入りでもインストールできるように修正
 @rem     タスクキルの確実性をアップ
