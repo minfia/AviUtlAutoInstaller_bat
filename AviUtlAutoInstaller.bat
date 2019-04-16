@@ -26,7 +26,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-echo script version 1.1.1
+echo script version 1.2.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -163,7 +163,7 @@ call :EXEC_AVIUTL
 @rem キャッシュフレーム数(8 -> 32)
 @rem リサイズ解像度リスト(1920x1080を追加)
 @rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first 189 | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
+powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first 166 | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
 powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`ncache=32^
 `r`nmoveA=5`r`nmoveB=30`r`nmoveC=899`r`nmoveD=8991`r`nsaveunitsize=4096`r`ncompprofile=1`r`nplugincache=1^
 `r`nstartframe=1`r`nshiftselect=1`r`nyuy2mode=0`r`nmovieplaymain=1`r`nvfplugin=1`r`nyuy2limit=0`r`neditresume=0`r`nfpsnoconvert=0^
@@ -172,7 +172,7 @@ powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`ncache=32
 `r`nresizelist=1920x1080`,1280x720`,640x480`,352x240`,320x240^
 `r`nfpslist=*`,30000/1001`,24000/1001`,60000/1001`,60`,50`,30`,25`,24`,20`,15`,12`,10`,8`,6`,5`,4`,3`,2`,1^
 `r`nsse=1`r`nsse2=1" | Set-Content -en string \"%AVIUTL_DIR%\A-12.bin\""
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last 25 | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
+powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last 21 | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
 del "%AVIUTL_DIR%"\*.bin
 
@@ -304,6 +304,8 @@ rmdir /s /q "%AVIUTL_DIR%"
 exit /b
 
 @rem リリースノート
+@rem 2019/4/16
+@rem     設定ファイルがうまく編集できていなかったのを修正
 @rem 2019/3/26
 @rem     PSDToolKitのバージョン変更に対応
 @rem 2019/3/2
