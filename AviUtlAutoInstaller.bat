@@ -26,7 +26,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-echo script version 1.2.0
+echo script version 1.3.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -354,6 +354,11 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/4/21
+@rem     ダウンロードエラー表示を追加
+@rem     x256guiExのダウンロード先を変更
+@rem     設定ファイルがうまく編集されない可能性があったのを修正
+@rem     aviutl.exeの検索がうまくされてない可能性があるのを修正
 @rem 2019/4/16
 @rem     設定ファイルがうまく編集できていなかったのを修正
 @rem 2019/3/26
