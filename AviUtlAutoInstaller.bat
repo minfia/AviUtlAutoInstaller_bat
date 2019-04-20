@@ -4,7 +4,7 @@
 @rem このプログラムを使用した事で発生した全ての損害について保証しません。
 @rem このプログラムを実行する場合は、ネットワークが接続された場所で、出来るだけ有線接続で実行して下さい。
 @rem もしネットワークの接続が上手くいかない場合は時間を置いて実行して下さい。
-@rem その際に作成されているAviTulフォルダは自動で削除されいますが、
+@rem その際に作成されているAviUtlフォルダは自動で削除されいますが、
 @rem もし削除されていない場合は手動で削除して下さい。
 
 @rem AviUtl及びプラグイン、スクリプトの使い方は各自でご確認下さい。
@@ -17,7 +17,7 @@
 @rem ・インク（＋ひょうたん）(by ティム氏)
 @rem ・縁取りT (by ティム氏)
 @rem ・リール回転 (by ティム氏)
-@rem ・バーニングポイント2 (by ティム氏)
+@rem ・バニシングポイント2 (by ティム氏)
 @rem ・ライントーン＆ハーフトーン (by ティム氏)
 @rem ・PNG出力 (by yu_noimage_氏)
 
@@ -26,7 +26,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-echo script version 1.2.0
+echo script version 1.3.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -47,7 +47,7 @@ set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 set X264GUIEX_VER=2.59
-set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.zip
+set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 set PSDTOOLKIT_VER=v0.2beta35
 set PSDTOOLKIT_ZIP=psdtoolkit_%PSDTOOLKIT_VER%.zip
 
@@ -108,8 +108,8 @@ set WGET_DIR=%AVIUTL_DIR%\wget
 echo 7zのダウンロード...
 powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://ja.osdn.net/frs/redir.php?m=jaist^&f=sevenzip%%2F70468%%2F7z1806.msi\",\"%DL_DIR%\7z.msi\")"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 echo 7zのダウンロード完了
 @rem DLした7zを展開
@@ -123,8 +123,8 @@ echo 7zの展開完了
 echo wgetのダウンロード...
 powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://eternallybored.org/misc/wget/%WGET_VER%/32/wget.exe\",\"%WGET_DIR%\wget.exe\")"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 echo wgetのダウンロード完了
 @rem wget.exeを変数に格納
@@ -134,9 +134,25 @@ set WGETEXE="%WGET_DIR%\wget.exe"
 @rem 基本環境構築
 @rem 基本ファイルのDL
 %WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP% -O "%DL_DIR%\%AVIUTL_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 %WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP% -O "%DL_DIR%\%EXEDIT_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 %WGETEXE% --no-check-certificate https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP% -O "%DL_DIR%\%LSMASH_ZIP%"
-%WGETEXE% --no-check-certificate https://drive.google.com/uc?id=10RpwYSiSjjp4f0uIEOQzGuc1YOVF24u_ -O "%DL_DIR%\%X264GUIEX_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
+%WGETEXE% --no-check-certificate https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK -O "%DL_DIR%\%X264GUIEX_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 
 @rem AviUtlの展開
 %SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
@@ -156,6 +172,13 @@ echo 100%%完了
 
 @rem AviUtlの設定ファイルを生成する
 call :EXEC_AVIUTL
+timeout /t 3 /nobreak > nul
+:SEARCH_INI
+    for %%a in (aviutl.ini) do @set INI_FILE=%%a
+    if /i not !INI_FILE!==aviutl.ini (
+        goto SEARCH_INI
+    )
+
 
 @rem aviutlの設定ファイルを編集
 @rem 変更内容
@@ -163,18 +186,24 @@ call :EXEC_AVIUTL
 @rem キャッシュフレーム数(8 -> 32)
 @rem リサイズ解像度リスト(1920x1080を追加)
 @rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first 166 | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
+call :FILE_SEARCH_STR %AVIUTL_DIR%\aviutl.ini "[system]"
+set SYSTEM_POS=%ERRORLEVEL%
+call :FILE_LINE_CNT %AVIUTL_DIR%\aviutl.ini
+set LINE=%ERRORLEVEL%
+set /a TAILE=LINE-SYSTEM_POS
+powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first %SYSTEM_POS% | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
 powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`ncache=32^
 `r`nmoveA=5`r`nmoveB=30`r`nmoveC=899`r`nmoveD=8991`r`nsaveunitsize=4096`r`ncompprofile=1`r`nplugincache=1^
 `r`nstartframe=1`r`nshiftselect=1`r`nyuy2mode=0`r`nmovieplaymain=1`r`nvfplugin=1`r`nyuy2limit=0`r`neditresume=0`r`nfpsnoconvert=0^
-`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=1^
+`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=0^
 `r`nprojectonfig=0`r`nwindowsnap=0`r`ndragdropactive=1`r`ntrackbarclick=1`r`ndefaultsavefile=%%p`r`nfinishsound=^
 `r`nresizelist=1920x1080`,1280x720`,640x480`,352x240`,320x240^
 `r`nfpslist=*`,30000/1001`,24000/1001`,60000/1001`,60`,50`,30`,25`,24`,20`,15`,12`,10`,8`,6`,5`,4`,3`,2`,1^
 `r`nsse=1`r`nsse2=1" | Set-Content -en string \"%AVIUTL_DIR%\A-12.bin\""
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last 21 | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
+powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last %TAILE% | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
 del "%AVIUTL_DIR%"\*.bin
+
 
 @rem プラグインなどを展開
 %SZEXE% x "%DL_DIR%\%EXEDIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
@@ -193,50 +222,50 @@ mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
 @rem 劇場向けファイルのDL
 %WGETEXE% https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/%PSDTOOLKIT_ZIP% -O "%DL_DIR%\%PSDTOOLKIT_ZIP%"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem 風揺れ
 %WGETEXE% https://tim3.web.fc2.com/script/WindShk.zip -O "%DL_DIR%\WindShk.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem インク（＋ひょうたん）
 %WGETEXE% https://tim3.web.fc2.com/script/InkV2.zip -O "%DL_DIR%\InkV2.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem 縁取りT
 %WGETEXE% https://tim3.web.fc2.com/script/Framing.zip -O "%DL_DIR%\Framing.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem リール回転
 %WGETEXE% https://tim3.web.fc2.com/script/ReelRot.zip -O "%DL_DIR%\ReelRot.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem バーニングポイント2
 %WGETEXE% https://tim3.web.fc2.com/script/VanishP2_V2.zip -O "%DL_DIR%\VanishP2_V2.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem ライントーン＆ハーフトーン
 %WGETEXE% https://tim3.web.fc2.com/script/LinHal.zip -O "%DL_DIR%\LinHal.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem PNG出力
 %WGETEXE% http://auls.client.jp/plugin/auls_outputpng.zip -O "%DL_DIR%\auls_outputpng.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 
 @rem PSDToolKitを展開
@@ -275,35 +304,61 @@ rmdir /s /q "%WGET_DIR%"
 
 echo msgbox "インストールが完了しました",vbInformation,"情報" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
 del %TEMP%\msgbox.vbs
-for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
-if /i not %AVIUTL_EXE%==aviutl.exe (
-goto SEARCH_EXE
-)
 exit
 
 @rem 以下、サブルーチン
 
+@rem ファイルから完全一致の行を検索する
+@rem 引数: %1-ファイル %2-検索する文字列
+@rem 戻り値 0<:ヒットした行数 0:ヒットなし
+:FILE_SEARCH_STR
+set CNT=1
+    for /f %%a in (%1) do (
+        if "%%a"==%2 (
+            goto :HIT_STR
+        )
+        set /a CNT=CNT+1
+    )
+    set CNT=0
+    :HIT_STR
+exit /b !CNT!
+
+@rem ファイルの行数をカウントする
+@rem 引数: %1-ファイル
+@rem 戻り値 行数
+:FILE_LINE_CNT
+    set CNT=0
+    for /f %%a in (%1) do (
+        set /a CNT=CNT+1
+    )
+exit /b !CNT!
+
 :EXEC_AVIUTL
-start "" "%AVIUTL_DIR%\aviutl.exe"
-timeout /t 2 /nobreak >nul
-call :KILL_AVIUTL
-taskkill /im aviutl.exe
+    start "" "%AVIUTL_DIR%\aviutl.exe"
+    timeout /t 2 /nobreak >nul
+    call :SEARCH_EXE
+    taskkill /im aviutl.exe
 exit /b
 
-:KILL_AVIUTL
-for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
+:SEARCH_EXE
+    for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
     if /i not !AVIUTL_EXE!==aviutl.exe (
-    goto SEARCH_EXE
-)
+        goto SEARCH_EXE
+    )
 exit /b
 
 :CONNECT_ERROR
-echo msgbox "ファイルのダウンロードに失敗しました",vbCritical,"エラー" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
-del %TEMP%\msgbox.vbs
-rmdir /s /q "%AVIUTL_DIR%"
+    echo msgbox "ファイルのダウンロードに失敗しました",vbCritical,"エラー" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
+    del %TEMP%\msgbox.vbs
+    rmdir /s /q "%AVIUTL_DIR%"
 exit /b
 
 @rem リリースノート
+@rem 2019/4/21
+@rem     ダウンロードエラー表示を追加
+@rem     x256guiExのダウンロード先を変更
+@rem     設定ファイルがうまく編集されない可能性があったのを修正
+@rem     aviutl.exeの検索がうまくされてない可能性があるのを修正
 @rem 2019/4/16
 @rem     設定ファイルがうまく編集できていなかったのを修正
 @rem 2019/3/26
