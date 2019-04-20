@@ -286,15 +286,15 @@ exit
 :EXEC_AVIUTL
 start "" "%AVIUTL_DIR%\aviutl.exe"
 timeout /t 2 /nobreak >nul
-call :KILL_AVIUTL
+call :SEARCH_EXE
 taskkill /im aviutl.exe
 exit /b
 
-:KILL_AVIUTL
+:SEARCH_EXE
 for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
     if /i not !AVIUTL_EXE!==aviutl.exe (
-    goto SEARCH_EXE
-)
+        goto SEARCH_EXE
+    )
 exit /b
 
 :CONNECT_ERROR
