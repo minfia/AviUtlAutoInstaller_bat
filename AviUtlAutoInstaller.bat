@@ -108,8 +108,8 @@ set WGET_DIR=%AVIUTL_DIR%\wget
 echo 7zのダウンロード...
 powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://ja.osdn.net/frs/redir.php?m=jaist^&f=sevenzip%%2F70468%%2F7z1806.msi\",\"%DL_DIR%\7z.msi\")"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 echo 7zのダウンロード完了
 @rem DLした7zを展開
@@ -123,8 +123,8 @@ echo 7zの展開完了
 echo wgetのダウンロード...
 powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://eternallybored.org/misc/wget/%WGET_VER%/32/wget.exe\",\"%WGET_DIR%\wget.exe\")"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 echo wgetのダウンロード完了
 @rem wget.exeを変数に格納
@@ -158,7 +158,7 @@ echo 100%%完了
 call :EXEC_AVIUTL
 timeout /t 3 /nobreak > nul
 :SEARCH_INI
-for %%a in (aviutl.ini) do @set INI_FILE=%%a
+    for %%a in (aviutl.ini) do @set INI_FILE=%%a
     if /i not !INI_FILE!==aviutl.ini (
         goto SEARCH_INI
     )
@@ -206,50 +206,50 @@ mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
 @rem 劇場向けファイルのDL
 %WGETEXE% https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/%PSDTOOLKIT_ZIP% -O "%DL_DIR%\%PSDTOOLKIT_ZIP%"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem 風揺れ
 %WGETEXE% https://tim3.web.fc2.com/script/WindShk.zip -O "%DL_DIR%\WindShk.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem インク（＋ひょうたん）
 %WGETEXE% https://tim3.web.fc2.com/script/InkV2.zip -O "%DL_DIR%\InkV2.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem 縁取りT
 %WGETEXE% https://tim3.web.fc2.com/script/Framing.zip -O "%DL_DIR%\Framing.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem リール回転
 %WGETEXE% https://tim3.web.fc2.com/script/ReelRot.zip -O "%DL_DIR%\ReelRot.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem バーニングポイント2
 %WGETEXE% https://tim3.web.fc2.com/script/VanishP2_V2.zip -O "%DL_DIR%\VanishP2_V2.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem ライントーン＆ハーフトーン
 %WGETEXE% https://tim3.web.fc2.com/script/LinHal.zip -O "%DL_DIR%\LinHal.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 @rem PNG出力
 %WGETEXE% http://auls.client.jp/plugin/auls_outputpng.zip -O "%DL_DIR%\auls_outputpng.zip"
 if %ERRORLEVEL% neq 0 (
-call :CONNECT_ERROR
-exit
+    call :CONNECT_ERROR
+    exit
 )
 
 @rem PSDToolKitを展開
@@ -297,44 +297,44 @@ exit
 @rem 戻り値 0<:ヒットした行数 0:ヒットなし
 :FILE_SEARCH_STR
 set CNT=1
-for /f %%a in (%1) do (
-    if "%%a"==%2 (
-        goto :HIT_STR
+    for /f %%a in (%1) do (
+        if "%%a"==%2 (
+            goto :HIT_STR
+        )
+        set /a CNT=CNT+1
     )
-    set /a CNT=CNT+1
-)
-set CNT=0
-:HIT_STR
+    set CNT=0
+    :HIT_STR
 exit /b !CNT!
 
 @rem ファイルの行数をカウントする
 @rem 引数: %1-ファイル
 @rem 戻り値 行数
 :FILE_LINE_CNT
-set CNT=0
-for /f %%a in (%1) do (
-    set /a CNT=CNT+1
-)
+    set CNT=0
+    for /f %%a in (%1) do (
+        set /a CNT=CNT+1
+    )
 exit /b !CNT!
 
 :EXEC_AVIUTL
-start "" "%AVIUTL_DIR%\aviutl.exe"
-timeout /t 2 /nobreak >nul
-call :SEARCH_EXE
-taskkill /im aviutl.exe
+    start "" "%AVIUTL_DIR%\aviutl.exe"
+    timeout /t 2 /nobreak >nul
+    call :SEARCH_EXE
+    taskkill /im aviutl.exe
 exit /b
 
 :SEARCH_EXE
-for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
+    for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
     if /i not !AVIUTL_EXE!==aviutl.exe (
         goto SEARCH_EXE
     )
 exit /b
 
 :CONNECT_ERROR
-echo msgbox "ファイルのダウンロードに失敗しました",vbCritical,"エラー" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
-del %TEMP%\msgbox.vbs
-rmdir /s /q "%AVIUTL_DIR%"
+    echo msgbox "ファイルのダウンロードに失敗しました",vbCritical,"エラー" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
+    del %TEMP%\msgbox.vbs
+    rmdir /s /q "%AVIUTL_DIR%"
 exit /b
 
 @rem リリースノート
