@@ -134,9 +134,25 @@ set WGETEXE="%WGET_DIR%\wget.exe"
 @rem 基本環境構築
 @rem 基本ファイルのDL
 %WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP% -O "%DL_DIR%\%AVIUTL_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 %WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP% -O "%DL_DIR%\%EXEDIT_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 %WGETEXE% --no-check-certificate https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP% -O "%DL_DIR%\%LSMASH_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 %WGETEXE% --no-check-certificate https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK -O "%DL_DIR%\%X264GUIEX_ZIP%"
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 
 @rem AviUtlの展開
 %SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
