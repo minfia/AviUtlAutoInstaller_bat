@@ -47,7 +47,7 @@ set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 set X264GUIEX_VER=2.59
-set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.zip
+set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 set PSDTOOLKIT_VER=v0.2beta35
 set PSDTOOLKIT_ZIP=psdtoolkit_%PSDTOOLKIT_VER%.zip
 
@@ -136,7 +136,7 @@ set WGETEXE="%WGET_DIR%\wget.exe"
 %WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP% -O "%DL_DIR%\%AVIUTL_ZIP%"
 %WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP% -O "%DL_DIR%\%EXEDIT_ZIP%"
 %WGETEXE% --no-check-certificate https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP% -O "%DL_DIR%\%LSMASH_ZIP%"
-%WGETEXE% --no-check-certificate https://drive.google.com/uc?id=10RpwYSiSjjp4f0uIEOQzGuc1YOVF24u_ -O "%DL_DIR%\%X264GUIEX_ZIP%"
+%WGETEXE% --no-check-certificate https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK -O "%DL_DIR%\%X264GUIEX_ZIP%"
 
 @rem AviUtl‚Ì“WŠJ
 %SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
