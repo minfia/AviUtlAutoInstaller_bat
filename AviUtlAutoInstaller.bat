@@ -156,6 +156,13 @@ echo 100%%完了
 
 @rem AviUtlの設定ファイルを生成する
 call :EXEC_AVIUTL
+timeout /t 3 /nobreak > nul
+:SEARCH_INI
+for %%a in (aviutl.ini) do @set INI_FILE=%%a
+    if /i not !INI_FILE!==aviutl.ini (
+        goto SEARCH_INI
+    )
+
 
 @rem aviutlの設定ファイルを編集
 @rem 変更内容
@@ -163,18 +170,24 @@ call :EXEC_AVIUTL
 @rem キャッシュフレーム数(8 -> 32)
 @rem リサイズ解像度リスト(1920x1080を追加)
 @rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first 166 | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
+call :FILE_SEARCH_STR %AVIUTL_DIR%\aviutl.ini "[system]"
+set SYSTEM_POS=%ERRORLEVEL%
+call :FILE_LINE_CNT %AVIUTL_DIR%\aviutl.ini
+set LINE=%ERRORLEVEL%
+set /a TAILE=LINE-SYSTEM_POS
+powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first %SYSTEM_POS% | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
 powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`ncache=32^
 `r`nmoveA=5`r`nmoveB=30`r`nmoveC=899`r`nmoveD=8991`r`nsaveunitsize=4096`r`ncompprofile=1`r`nplugincache=1^
 `r`nstartframe=1`r`nshiftselect=1`r`nyuy2mode=0`r`nmovieplaymain=1`r`nvfplugin=1`r`nyuy2limit=0`r`neditresume=0`r`nfpsnoconvert=0^
-`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=1^
+`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=0^
 `r`nprojectonfig=0`r`nwindowsnap=0`r`ndragdropactive=1`r`ntrackbarclick=1`r`ndefaultsavefile=%%p`r`nfinishsound=^
 `r`nresizelist=1920x1080`,1280x720`,640x480`,352x240`,320x240^
 `r`nfpslist=*`,30000/1001`,24000/1001`,60000/1001`,60`,50`,30`,25`,24`,20`,15`,12`,10`,8`,6`,5`,4`,3`,2`,1^
 `r`nsse=1`r`nsse2=1" | Set-Content -en string \"%AVIUTL_DIR%\A-12.bin\""
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last 21 | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
+powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last %TAILE% | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
 del "%AVIUTL_DIR%"\*.bin
+
 
 @rem プラグインなどを展開
 %SZEXE% x "%DL_DIR%\%EXEDIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
@@ -275,13 +288,34 @@ rmdir /s /q "%WGET_DIR%"
 
 echo msgbox "インストールが完了しました",vbInformation,"情報" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
 del %TEMP%\msgbox.vbs
-for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
-if /i not %AVIUTL_EXE%==aviutl.exe (
-goto SEARCH_EXE
-)
 exit
 
 @rem 以下、サブルーチン
+
+@rem ファイルから完全一致の行を検索する
+@rem 引数: %1-ファイル %2-検索する文字列
+@rem 戻り値 0<:ヒットした行数 0:ヒットなし
+:FILE_SEARCH_STR
+set CNT=1
+for /f %%a in (%1) do (
+    if "%%a"==%2 (
+        goto :HIT_STR
+    )
+    set /a CNT=CNT+1
+)
+set CNT=0
+:HIT_STR
+exit /b !CNT!
+
+@rem ファイルの行数をカウントする
+@rem 引数: %1-ファイル
+@rem 戻り値 行数
+:FILE_LINE_CNT
+set CNT=0
+for /f %%a in (%1) do (
+    set /a CNT=CNT+1
+)
+exit /b !CNT!
 
 :EXEC_AVIUTL
 start "" "%AVIUTL_DIR%\aviutl.exe"
