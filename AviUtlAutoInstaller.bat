@@ -133,26 +133,11 @@ set WGETEXE="%WGET_DIR%\wget.exe"
 
 @rem 基本環境構築
 @rem 基本ファイルのDL
-%WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP% -O "%DL_DIR%\%AVIUTL_ZIP%"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
-%WGETEXE% http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP% -O "%DL_DIR%\%EXEDIT_ZIP%"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
-%WGETEXE% --no-check-certificate https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP% -O "%DL_DIR%\%LSMASH_ZIP%"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
-%WGETEXE% --no-check-certificate https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK -O "%DL_DIR%\%X264GUIEX_ZIP%"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP% "%DL_DIR%\%AVIUTL_ZIP%"
+call :FILE_DOWNLOAD http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%  "%DL_DIR%\%EXEDIT_ZIP%"
+call :FILE_DOWNLOAD https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP% "%DL_DIR%\%LSMASH_ZIP%"
+call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
+
 
 @rem AviUtlの展開
 %SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
@@ -220,53 +205,29 @@ rmdir /s /q "%DL_DIR%"
 mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
 
 @rem 劇場向けファイルのDL
-%WGETEXE% https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/%PSDTOOLKIT_ZIP% -O "%DL_DIR%\%PSDTOOLKIT_ZIP%"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :File_DOWNLOAD https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/%PSDTOOLKIT_ZIP% "%DL_DIR%\%PSDTOOLKIT_ZIP%"
+
 @rem 風揺れ
-%WGETEXE% https://tim3.web.fc2.com/script/WindShk.zip -O "%DL_DIR%\WindShk.zip"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/WindShk.zip  "%DL_DIR%\WindShk.zip"
+
 @rem インク（＋ひょうたん）
-%WGETEXE% https://tim3.web.fc2.com/script/InkV2.zip -O "%DL_DIR%\InkV2.zip"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/InkV2.zip "%DL_DIR%\InkV2.zip"
+
 @rem 縁取りT
-%WGETEXE% https://tim3.web.fc2.com/script/Framing.zip -O "%DL_DIR%\Framing.zip"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/Framing.zip "%DL_DIR%\Framing.zip"
+
 @rem リール回転
-%WGETEXE% https://tim3.web.fc2.com/script/ReelRot.zip -O "%DL_DIR%\ReelRot.zip"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/ReelRot.zip "%DL_DIR%\ReelRot.zip"
+
 @rem バーニングポイント2
-%WGETEXE% https://tim3.web.fc2.com/script/VanishP2_V2.zip -O "%DL_DIR%\VanishP2_V2.zip"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/VanishP2_V2.zip "%DL_DIR%\VanishP2_V2.zip"
+
 @rem ライントーン＆ハーフトーン
-%WGETEXE% https://tim3.web.fc2.com/script/LinHal.zip -O "%DL_DIR%\LinHal.zip"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/LinHal.zip "%DL_DIR%\LinHal.zip"
+
 @rem PNG出力
-%WGETEXE% http://auls.client.jp/plugin/auls_outputpng.zip -O "%DL_DIR%\auls_outputpng.zip"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+call :FILE_DOWNLOAD  http://auls.client.jp/plugin/auls_outputpng.zip "%DL_DIR%\auls_outputpng.zip"
+
 
 @rem PSDToolKitを展開
 %SZEXE% x "%DL_DIR%\%PSDTOOLKIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
@@ -352,6 +313,15 @@ exit /b
     del %TEMP%\msgbox.vbs
     rmdir /s /q "%AVIUTL_DIR%"
 exit /b
+
+@rem ファイルをダウンロードする
+@rem 引数: %1-URL %2-ダウンロードしたファイル名
+:PLUGIN_DOWNLOAD
+%WGETEXE% --no-check-certificate %1 -O %2
+if %ERRORLEVEL% neq 0 (
+    call :CONNECT_ERROR
+    exit
+)
 
 @rem リリースノート
 @rem 2019/4/21
