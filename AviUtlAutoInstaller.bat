@@ -316,7 +316,7 @@ exit /b
 
 @rem ファイルをダウンロードする
 @rem 引数: %1-URL %2-ダウンロードしたファイル名
-:PLUGIN_DOWNLOAD
+:FILE_DOWNLOAD 
 %WGETEXE% --no-check-certificate %1 -O %2
 if %ERRORLEVEL% neq 0 (
     call :CONNECT_ERROR
