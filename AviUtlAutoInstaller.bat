@@ -263,8 +263,8 @@ rmdir /s /q "%DL_DIR%"
 rmdir /s /q "%SVZIP_DIR%"
 rmdir /s /q "%WGET_DIR%"
 
-echo msgbox "インストールが完了しました",vbInformation,"情報" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
-del %TEMP%\msgbox.vbs
+call :SHOW_MSG "インストールが完了しました" vbInformation "情報"
+
 exit
 
 @rem 以下、サブルーチン
@@ -308,20 +308,23 @@ exit /b
     )
 exit /b
 
-:CONNECT_ERROR
-    echo msgbox "ファイルのダウンロードに失敗しました",vbCritical,"エラー" > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
-    del %TEMP%\msgbox.vbs
-    rmdir /s /q "%AVIUTL_DIR%"
-exit /b
-
 @rem ファイルをダウンロードする
 @rem 引数: %1-URL %2-ダウンロードしたファイル名
 :FILE_DOWNLOAD 
 %WGETEXE% --no-check-certificate %1 -O %2
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
+    if %ERRORLEVEL% neq 0 (
+        call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+exit /b
+
+@rem メッセージボックスを表示する
+@rem %1-表示テキスト %2-メッセージアイコン(VB) %3-タイトル
+:SHOW_MSG
+    echo msgbox %1,%2,%3 > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
+    del %TEMP%\msgbox.vbs
+exit /b
 
 @rem リリースノート
 @rem 2019/4/22
