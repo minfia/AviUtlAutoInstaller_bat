@@ -242,7 +242,8 @@ mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\PSDToolKitの説明ファイル群
 set TIM3_DIR_MK=%SCRIPT_DIR_MK%\ティム氏
 mkdir %TIM3_DIR_MK%
 set TIM3_DIR=%SCRIPT_DIR%\ティム氏
-%SZEXE% x "%DL_DIR%\WindShk.zip" -aoa -o"%TIM3_DIR%"
+%SZEXE% x "%DL_DIR%\WindShk.zip" -aoa -o"%DL_DIR%"
+@move "%DL_DIR%\WindShk\*.*" "%TIM3_DIR%"
 %SZEXE% x "%DL_DIR%\InkV2.zip" -aoa -o"%TIM3_DIR%"
 %SZEXE% x "%DL_DIR%\Framing.zip" -aoa -o"%DL_DIR%"
 @move "%DL_DIR%\Framing\*.*" "%TIM3_DIR%"
