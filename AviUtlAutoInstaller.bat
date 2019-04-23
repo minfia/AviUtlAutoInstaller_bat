@@ -26,7 +26,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-echo script version 1.4.0
+echo script version 1.5.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -328,6 +328,9 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/4/24
+@rem     風揺れTがサブフォルダに入っていたのを修正
+@rem     メッセージボックスをサブルーチン化
 @rem 2019/4/22
 @rem     ダウンロード処理をサブルーチン化
 @rem 2019/4/21
