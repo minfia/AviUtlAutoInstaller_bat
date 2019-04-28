@@ -26,7 +26,16 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-echo script version 1.5.0
+@rem 実行前にAviUtlが起動していた場合に注意する
+call :SEARCH_EXE
+if %ERRORLEVEL% equ 0 (
+    call :SHOW_MSG "AviUtlが起動されています、AviUtlを終了してください" vbCritical "エラー"
+    exit
+)
+
+set DL_RETRY=3
+
+echo script version 1.6.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -136,7 +145,7 @@ set WGETEXE="%WGET_DIR%\wget.exe"
 call :FILE_DOWNLOAD http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP% "%DL_DIR%\%AVIUTL_ZIP%"
 call :FILE_DOWNLOAD http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%  "%DL_DIR%\%EXEDIT_ZIP%"
 call :FILE_DOWNLOAD https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP% "%DL_DIR%\%LSMASH_ZIP%"
-call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
+call :FILE_DOWNLOAD https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK "%DL_DIR%\%X264GUIEX_ZIP%"
 
 
 @rem AviUtlの展開
@@ -295,29 +304,45 @@ exit /b !CNT!
     )
 exit /b !CNT!
 
+@rem AviUtlを実行し、終了する
 :EXEC_AVIUTL
     start "" "%AVIUTL_DIR%\aviutl.exe"
     timeout /t 2 /nobreak >nul
+:SEARCH_EXE_LOOP
     call :SEARCH_EXE
-    taskkill /im aviutl.exe
-exit /b
-
-:SEARCH_EXE
-    for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
-    if /i not !AVIUTL_EXE!==aviutl.exe (
-        goto SEARCH_EXE
+    if %ERRORLEVEL% equ 0 (
+        taskkill /im aviutl.exe
+    ) else (
+        call :SEARCH_EXE_LOOP
     )
 exit /b
+
+@rem AviUtlが実行されているかチェック
+@rem 戻り値 0:ヒット 1:ヒットなし
+:SEARCH_EXE
+    for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
+    if /i !AVIUTL_EXE!==aviutl.exe (
+        exit /b 0
+    )
+exit /b 1
 
 @rem ファイルをダウンロードする
 @rem 引数: %1-URL %2-ダウンロードしたファイル名
 :FILE_DOWNLOAD 
-%WGETEXE% --no-check-certificate %1 -O %2
-    if %ERRORLEVEL% neq 0 (
-        call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー"
-        rmdir /s /q "%AVIUTL_DIR%"
-        exit
+    for /l %%a in (0,1,%DL_RETRY%) do (
+        if %%a gtr 0 (
+            echo Retry %%a/%DL_RETRY%
+        )
+        %WGETEXE% --no-check-certificate %1 -O %2
+        if !ERRORLEVEL! equ 0  (
+            goto :DOWNLOAD_SUCCESS
+        )
+        echo retVal:!ERRORLEVEL!
     )
+    call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー"
+    rmdir /s /q "%AVIUTL_DIR%"
+    exit
+:DOWNLOAD_SUCCESS
 exit /b
 
 @rem メッセージボックスを表示する
@@ -328,6 +353,9 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/4/29
+@rem     ダウンロードエラー時に再試行をするように変更
+@rem     インストール実行前にAviUtlの起動チェックを追加
 @rem 2019/4/24
 @rem     風揺れTがサブフォルダに入っていたのを修正
 @rem     メッセージボックスをサブルーチン化
