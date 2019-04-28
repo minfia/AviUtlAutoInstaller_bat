@@ -35,7 +35,7 @@ if %ERRORLEVEL% equ 0 (
 
 set DL_RETRY=3
 
-echo script version 1.5.0
+echo script version 1.6.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -353,6 +353,9 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/4/29
+@rem     ダウンロードエラー時に再試行をするように変更
+@rem     インストール実行前にAviUtlの起動チェックを追加
 @rem 2019/4/24
 @rem     風揺れTがサブフォルダに入っていたのを修正
 @rem     メッセージボックスをサブルーチン化
