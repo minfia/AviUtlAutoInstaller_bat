@@ -26,6 +26,13 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
+@rem 実行前にAviUtlが起動していた場合に注意する
+call :SEARCH_EXE
+if %ERRORLEVEL% equ 0 (
+    call :SHOW_MSG "AviUtlが起動されています、AviUtlを終了してください" vbCritical "エラー"
+    exit
+)
+
 set DL_RETRY=3
 
 echo script version 1.5.0
@@ -297,19 +304,27 @@ exit /b !CNT!
     )
 exit /b !CNT!
 
+@rem AviUtlを実行し、終了する
 :EXEC_AVIUTL
     start "" "%AVIUTL_DIR%\aviutl.exe"
     timeout /t 2 /nobreak >nul
+:SEARCH_EXE_LOOP
     call :SEARCH_EXE
-    taskkill /im aviutl.exe
-exit /b
-
-:SEARCH_EXE
-    for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
-    if /i not !AVIUTL_EXE!==aviutl.exe (
-        goto SEARCH_EXE
+    if %ERRORLEVEL% equ 0 (
+        taskkill /im aviutl.exe
+    ) else (
+        call :SEARCH_EXE_LOOP
     )
 exit /b
+
+@rem AviUtlが実行されているかチェック
+@rem 戻り値 0:ヒット 1:ヒットなし
+:SEARCH_EXE
+    for /F "usebackq tokens=1" %%a in (`tasklist /fi "IMAGENAME eq aviutl.exe"`) do @set AVIUTL_EXE=%%a
+    if /i !AVIUTL_EXE!==aviutl.exe (
+        exit /b 0
+    )
+exit /b 1
 
 @rem ファイルをダウンロードする
 @rem 引数: %1-URL %2-ダウンロードしたファイル名
