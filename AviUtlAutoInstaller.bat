@@ -2,6 +2,7 @@
 
 @rem AviUtl Auto Installer Scriptは無保証で提供されます。
 @rem このプログラムを使用した事で発生した全ての損害について保証しません。
+@rem このプログラムは、PowerShell3.0以上が対象です。
 @rem このプログラムを実行する場合は、ネットワークが接続された場所で、出来るだけ有線接続で実行して下さい。
 @rem もしネットワークの接続が上手くいかない場合は時間を置いて実行して下さい。
 @rem その際に作成されているAviUtlフォルダは自動で削除されいますが、
@@ -25,6 +26,15 @@
 setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
+
+@rem PowerShellのバージョンチェックをする
+for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
+    set PSVER=%%a
+)
+if not %PSVER% geq 3 (
+    call :SHOW_MSG "PowerShellのバージョンが3以上である必要があります" vbCritical "エラー"
+    exit
+)
 
 @rem 実行前にAviUtlが起動していた場合に注意する
 call :SEARCH_EXE
@@ -50,7 +60,6 @@ set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
 set INSTALL_DIR=%INSTALL_DIR_PRE%
 set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
-set WGET_VER=1.20
 set AVIUTL_ZIP=aviutl100.zip
 set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
@@ -72,8 +81,6 @@ set FIGURE_DIR_NAME=figure
 set SCRIPT_DIR_NAME=script
 @rem 7zディレクトリ名
 set SVZIP_DIR_NAME=7z
-@rem wgetディレクトリ名
-set WGET_DIR_NAME=wget
 
 @rem AviUtlディレクトリ作成
 set AVIUTL_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%
@@ -93,9 +100,6 @@ mkdir %SCRIPT_DIR_MK%
 @rem 7zディレクトリ作成
 set SVZIP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%SVZIP_DIR_NAME%
 mkdir %SVZIP_DIR_MK%
-@rem wgetディレクトリ作成
-set WGET_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%WGET_DIR_NAME%
-mkdir %WGET_DIR_MK%
 
 @rem AviUtlディレクトリ
 set AVIUTL_DIR=%INSTALL_DIR%\AviUtl
@@ -109,8 +113,6 @@ set FIGURE_DIR=%PLUGINS_DIR%\figure
 set SCRIPT_DIR=%PLUGINS_DIR%\script
 @rem 7zの展開ディレクトリ
 set SVZIP_DIR=%AVIUTL_DIR%\7z
-@rem wgetの展開ディレクトリ
-set WGET_DIR=%AVIUTL_DIR%\wget
 
 
 @rem 7zの環境構築
@@ -128,24 +130,21 @@ msiexec /a "%DL_DIR%\7z.msi" targetdir="%SVZIP_DIR%" /qn
 set SZEXE="%SVZIP_DIR%\Files\7-Zip\7z.exe"
 echo 7zの展開完了
 
-@rem wgetの環境構築
-echo wgetのダウンロード...
-powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://eternallybored.org/misc/wget/%WGET_VER%/32/wget.exe\",\"%WGET_DIR%\wget.exe\")"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
-echo wgetのダウンロード完了
-@rem wget.exeを変数に格納
-set WGETEXE="%WGET_DIR%\wget.exe"
-
 
 @rem 基本環境構築
 @rem 基本ファイルのDL
-call :FILE_DOWNLOAD http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP% "%DL_DIR%\%AVIUTL_ZIP%"
-call :FILE_DOWNLOAD http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%  "%DL_DIR%\%EXEDIT_ZIP%"
-call :FILE_DOWNLOAD https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP% "%DL_DIR%\%LSMASH_ZIP%"
-call :FILE_DOWNLOAD https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK "%DL_DIR%\%X264GUIEX_ZIP%"
+echo AviUtlのダウンロード...
+call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP%" "%DL_DIR%\%AVIUTL_ZIP%"
+echo AviUtlのダウンロード完了
+echo 拡張編集のダウンロード...
+call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%"  "%DL_DIR%\%EXEDIT_ZIP%"
+echo 拡張編集のダウンロード完了
+echo L-SMASHのダウンロード...
+call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
+echo L-SMASHのダウンロード完了
+echo x264guiExのダウンロード...
+call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
+echo x264guiExのダウンロード完了
 
 
 @rem AviUtlの展開
@@ -214,28 +213,28 @@ rmdir /s /q "%DL_DIR%"
 mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
 
 @rem 劇場向けファイルのDL
-call :File_DOWNLOAD https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/%PSDTOOLKIT_ZIP% "%DL_DIR%\%PSDTOOLKIT_ZIP%"
+call :File_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/%PSDTOOLKIT_ZIP%" "%DL_DIR%\%PSDTOOLKIT_ZIP%"
 
 @rem 風揺れ
-call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/WindShk.zip  "%DL_DIR%\WindShk.zip"
+call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/WindShk.zip"  "%DL_DIR%\WindShk.zip"
 
 @rem インク（＋ひょうたん）
-call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/InkV2.zip "%DL_DIR%\InkV2.zip"
+call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/InkV2.zip" "%DL_DIR%\InkV2.zip"
 
 @rem 縁取りT
-call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/Framing.zip "%DL_DIR%\Framing.zip"
+call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/Framing.zip" "%DL_DIR%\Framing.zip"
 
 @rem リール回転
-call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/ReelRot.zip "%DL_DIR%\ReelRot.zip"
+call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/ReelRot.zip" "%DL_DIR%\ReelRot.zip"
 
 @rem バーニングポイント2
-call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/VanishP2_V2.zip "%DL_DIR%\VanishP2_V2.zip"
+call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/VanishP2_V2.zip" "%DL_DIR%\VanishP2_V2.zip"
 
 @rem ライントーン＆ハーフトーン
-call :FILE_DOWNLOAD https://tim3.web.fc2.com/script/LinHal.zip "%DL_DIR%\LinHal.zip"
+call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/LinHal.zip" "%DL_DIR%\LinHal.zip"
 
 @rem PNG出力
-call :FILE_DOWNLOAD  http://auls.client.jp/plugin/auls_outputpng.zip "%DL_DIR%\auls_outputpng.zip"
+call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
 
 
 @rem PSDToolKitを展開
@@ -271,7 +270,6 @@ call :EXEC_AVIUTL
 @rem 後始末
 rmdir /s /q "%DL_DIR%"
 rmdir /s /q "%SVZIP_DIR%"
-rmdir /s /q "%WGET_DIR%"
 
 call :SHOW_MSG "インストールが完了しました" vbInformation "情報"
 
@@ -333,7 +331,7 @@ exit /b 1
         if %%a gtr 0 (
             echo Retry %%a/%DL_RETRY%
         )
-        %WGETEXE% --no-check-certificate %1 -O %2
+        powershell -Command "wget %1 -Outfile %2"
         if !ERRORLEVEL! equ 0  (
             goto :DOWNLOAD_SUCCESS
         )
