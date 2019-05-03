@@ -331,7 +331,7 @@ exit /b 1
         if %%a gtr 0 (
             echo Retry %%a/%DL_RETRY%
         )
-        powershell -Command "wget %1 -Outfile %2"
+        powershell -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11 ; wget %1 -Outfile %2"
         if !ERRORLEVEL! equ 0  (
             goto :DOWNLOAD_SUCCESS
         )
