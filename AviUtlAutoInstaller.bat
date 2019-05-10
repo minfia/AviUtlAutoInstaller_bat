@@ -45,7 +45,7 @@ if %ERRORLEVEL% equ 0 (
 
 set DL_RETRY=3
 
-echo script version 2.1.0
+echo script version 2.2.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -179,9 +179,9 @@ timeout /t 3 /nobreak > nul
 @rem キャッシュフレーム数(8 -> 32)
 @rem リサイズ解像度リスト(1920x1080を追加)
 @rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
-call :FILE_SEARCH_STR %AVIUTL_DIR%\aviutl.ini "[system]"
+call :FILE_SEARCH_STR "%AVIUTL_DIR%\aviutl.ini" "[system]"
 set SYSTEM_POS=%ERRORLEVEL%
-call :FILE_LINE_CNT %AVIUTL_DIR%\aviutl.ini
+call :FILE_LINE_CNT "%AVIUTL_DIR%\aviutl.ini"
 set LINE=%ERRORLEVEL%
 set /a TAILE=LINE-SYSTEM_POS
 powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first %SYSTEM_POS% | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
@@ -282,7 +282,8 @@ exit
 @rem 戻り値 0<:ヒットした行数 0:ヒットなし
 :FILE_SEARCH_STR
 set CNT=1
-    for /f %%a in (%1) do (
+    set FILE_TXT=%1
+    for /f "usebackq" %%a in (%FILE_TXT%) do (
         if "%%a"==%2 (
             goto :HIT_STR
         )
@@ -297,7 +298,8 @@ exit /b !CNT!
 @rem 戻り値 行数
 :FILE_LINE_CNT
     set CNT=0
-    for /f %%a in (%1) do (
+    set FILE_TXT=%1
+    for /f "usebackq" %%a in (%FILE_TXT%) do (
         set /a CNT=CNT+1
     )
 exit /b !CNT!
@@ -331,7 +333,7 @@ exit /b 1
         if %%a gtr 0 (
             echo Retry %%a/%DL_RETRY%
         )
-        powershell -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11 ; wget %1 -Outfile %2"
+        powershell -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11 ; wget %1 -Outfile """%2""""
         if !ERRORLEVEL! equ 0  (
             goto :DOWNLOAD_SUCCESS
         )
@@ -351,6 +353,8 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/5/11 (v2.2.0)
+@rem     インストールパスに空白があった際にダウンロードエラー及び、aviutl.iniファイルの編集が出来ていなかったのを修正
 @rem 2019/5/4 (v2.1.0)
 @rem     httpsの接続を行ったときに、"SSL/TLS のセキュリティで保護されているチャネルを作成できませんでした"と表示されてダウンロードエラーとなってしまうことがあったのを修正
 @rem 2019/4/29 (v2.0.0)
