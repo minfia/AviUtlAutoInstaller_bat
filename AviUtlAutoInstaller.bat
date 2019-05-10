@@ -45,7 +45,7 @@ if %ERRORLEVEL% equ 0 (
 
 set DL_RETRY=3
 
-echo script version 2.1.0
+echo script version 2.2.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
@@ -353,6 +353,8 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/5/11 (v2.2.0)
+@rem     インストールパスに空白があった際にダウンロードエラー及び、aviutl.iniファイルの編集が出来ていなかったのを修正
 @rem 2019/5/4 (v2.1.0)
 @rem     httpsの接続を行ったときに、"SSL/TLS のセキュリティで保護されているチャネルを作成できませんでした"と表示されてダウンロードエラーとなってしまうことがあったのを修正
 @rem 2019/4/29 (v2.0.0)
