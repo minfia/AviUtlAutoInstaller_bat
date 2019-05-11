@@ -91,27 +91,7 @@ call :SZ_SETUP
 
 
 @rem PSDToolkitのアップデート
-@rem PSDToolkitのreleaseページ
-set PSDTOOLKIT_REPO=psd_github.html
-@rem releaseのhtmlファイルをDL
-call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases" "%DL_DIR%\%PSDTOOLKIT_REPO%"
-@rem HtoX(HTML解析ツール)のDL
-call :FILE_DOWNLOAD "http://win32lab.com/lib/htox4173.exe" "%DL_DIR%\htox4173.exe"
-@rem HtoXの自己解凍を実行
-"%DL_DIR%\htox4173.exe" /h
-set HTOX="%DL_DIR%\HtoX32c.exe"
-
-@rem htmlを解析
-%HTOX% /I8 "%DL_DIR%\%PSDTOOLKIT_REPO%" > "%FILE_DIR%\htmlparse.txt"
-@rem psdtoolkitの最新バージョン取得
-findstr /C:"*  v" "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\tag.txt"
-set /p LINE=<"%FILE_DIR%\tag.txt"
-echo %LINE% > "%FILE_DIR%\tag.txt"
-set PSDTOOLKIT_VER=
-for /f "usebackq tokens=2" %%i in ("%FILE_DIR%\tag.txt") do (
-    set PSDTOOLKIT_VER=%%i
-)
-
+call :PSDTOOLKIT_PRE_ROUTINE
 @rem psdtoolkitの最新tagの日付取得
 findstr /C:"oov released this " "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.txt"
 @rem 1行目を代入
@@ -193,7 +173,6 @@ set AVIUTL_ZIP=aviutl100.zip
 set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
-set PSDTOOLKIT_VER=v0.2beta35
 
 @rem AviUtlディレクトリ名
 set AVIUTL_DIR_NAME=AviUtl
@@ -323,6 +302,8 @@ mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
 
 @rem 劇場向けファイルのDL
 @rem PSDToolkit
+set PSDTOOLKIT_VER=
+call :PSDTOOLKIT_PRE_ROUTINE
 call :PSDTOOLKIT_INSTALL
 
 @rem 風揺れ
@@ -639,6 +620,29 @@ echo x264guiExのダウンロード完了
 "%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
 rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
 
+exit /b
+
+@rem PSDToolkitインストールの前処理
+:PSDTOOLKIT_PRE_ROUTINE
+    @rem PSDToolkitのreleaseページ
+    set PSDTOOLKIT_REPO=psd_github.html
+    @rem releaseのhtmlファイルをDL
+    call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases" "%DL_DIR%\%PSDTOOLKIT_REPO%"
+    @rem HtoX(HTML解析ツール)のDL
+    call :FILE_DOWNLOAD "http://win32lab.com/lib/htox4173.exe" "%DL_DIR%\htox4173.exe"
+    @rem HtoXの自己解凍を実行
+    "%DL_DIR%\htox4173.exe" /h
+    set HTOX="%DL_DIR%\HtoX32c.exe"
+    @rem htmlを解析
+    %HTOX% /I8 "%DL_DIR%\%PSDTOOLKIT_REPO%" > "%FILE_DIR%\htmlparse.txt"
+    @rem psdtoolkitの最新バージョン取得
+    findstr /C:"*  v" "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\tag.txt"
+    set /p LINE=<"%FILE_DIR%\tag.txt"
+    echo %LINE% > "%FILE_DIR%\tag.txt"
+    set PSDTOOLKIT_VER=
+    for /f "usebackq tokens=2" %%i in ("%FILE_DIR%\tag.txt") do (
+        set PSDTOOLKIT_VER=%%i
+    )
 exit /b
 
 @rem PSDToolkitのインストール
