@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=3.0.0
+set SCRIPT_VER=3.0.1
 
 @rem PowerShellのバージョンチェックをする
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -163,7 +163,7 @@ echo script version %SCRIPT_VER%
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
-echo また、パスの最後に"\"を付けないで下さい、多分うまくいきません。
+echo また、パスの最後に"\"を付けないで下さい、うまくいきません。
 echo バッチファイルと同じ場所にインストールする場合はENTERを押してください。
 set /P INSTALL_DIR_PRE="インストール先："
 
@@ -329,7 +329,7 @@ call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/Framing.zip" "%DL_DIR%\Fram
 @rem リール回転
 call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/ReelRot.zip" "%DL_DIR%\ReelRot.zip"
 
-@rem バーニングポイント2
+@rem バニシングポイント2
 call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/VanishP2_V2.zip" "%DL_DIR%\VanishP2_V2.zip"
 
 @rem ライントーン＆ハーフトーン
@@ -633,13 +633,13 @@ exit /b
 
 @rem x264guiExのインストール
 :X264GUIEX_INSTALL
-echo x264guiExのダウンロード...
-call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
-echo x264guiExのダウンロード完了
+    echo x264guiExのダウンロード...
+    call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
+    echo x264guiExのダウンロード完了
 
-%SZEXE% x "%DL_DIR%\%X264GUIEX_ZIP%" -aoa -o"%TEMP%"
-"%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
-rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+    %SZEXE% x "%DL_DIR%\%X264GUIEX_ZIP%" -aoa -o"%TEMP%"
+    "%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
+    rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
 
 exit /b
 
@@ -676,7 +676,9 @@ exit /b
 exit /b
 
 @rem リリースノート
-@rem 2019/5/11 (v3.0.0)
+@rem 2019/5/12 (v3.0.1)
+@rem     インデントとコメント,初回インストール時のコメントをメンテナンス
+@rem 2019/5/12 (v3.0.0)
 @rem     PSDToolkitのアップデート機能を追加
 @rem     x264guiExのアップデート機能を追加
 @rem     最新のPSDToolkitをインストールするように変更
