@@ -27,6 +27,8 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
+set SCRIPT_VER=2.2.0
+
 @rem PowerShellのバージョンチェックをする
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
     set PSVER=%%a
@@ -154,7 +156,7 @@ exit
 
 
 :INSATALL
-echo script version 2.2.0
+echo script version %SCRIPT_VER%
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
 echo AviUtlのインストール先をフルパスで指定してください。
