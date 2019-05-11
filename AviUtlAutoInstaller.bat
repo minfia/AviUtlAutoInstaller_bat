@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=2.2.0
+set SCRIPT_VER=3.0.0
 
 @rem PowerShellのバージョンチェックをする
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -662,6 +662,10 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/5/11 (v3.0.0)
+@rem     PSDToolkitのアップデート機能を追加
+@rem     x264guiExのアップデート機能を追加
+@rem     最新のPSDToolkitをインストールするように変更
 @rem 2019/5/11 (v2.2.0)
 @rem     インストールパスに空白があった際にダウンロードエラー及び、aviutl.iniファイルの編集が出来ていなかったのを修正
 @rem 2019/5/4 (v2.1.0)
