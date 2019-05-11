@@ -32,14 +32,14 @@ for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
     set PSVER=%%a
 )
 if not %PSVER% geq 3 (
-    call :SHOW_MSG "PowerShellのバージョンが3以上である必要があります" vbCritical "エラー"
+    call :SHOW_MSG "PowerShellのバージョンが3以上である必要があります" vbCritical "エラー" "modal"
     exit
 )
 
 @rem 実行前にAviUtlが起動していた場合に注意する
 call :SEARCH_EXE
 if %ERRORLEVEL% equ 0 (
-    call :SHOW_MSG "AviUtlが起動されています、AviUtlを終了してください" vbCritical "エラー"
+    call :SHOW_MSG "AviUtlが起動されています、AviUtlを終了してください" vbCritical "エラー" "modal"
     exit
 )
 
@@ -271,7 +271,7 @@ call :EXEC_AVIUTL
 rmdir /s /q "%DL_DIR%"
 rmdir /s /q "%SVZIP_DIR%"
 
-call :SHOW_MSG "インストールが完了しました" vbInformation "情報"
+call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
 
 exit
 
@@ -339,16 +339,21 @@ exit /b 1
         )
         echo retVal:!ERRORLEVEL!
     )
-    call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー"
+    call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー" "modal"
     rmdir /s /q "%AVIUTL_DIR%"
     exit
 :DOWNLOAD_SUCCESS
 exit /b
 
 @rem メッセージボックスを表示する
-@rem %1-表示テキスト %2-メッセージアイコン(VB) %3-タイトル
+@rem %1-表示テキスト %2-メッセージアイコン(VB) %3-タイトル %4-モーダル設定("modal"でモーダル表示,""で非モーダル表示)
 :SHOW_MSG
-    echo msgbox %1,%2,%3 > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
+    if %4=="modal" (
+        set MSG_MODAL=vbSystemModal
+    ) else (
+        set MSG_MODAL=0
+    )
+    echo msgbox %1,%2  Or %MSG_MODAL%,%3 > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
     del %TEMP%\msgbox.vbs
 exit /b
 
