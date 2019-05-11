@@ -44,6 +44,8 @@ if %ERRORLEVEL% equ 0 (
 )
 
 set DL_RETRY=3
+set X264GUIEX_VER=2.59
+set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 
 
 where aviutl.exe > nul
@@ -104,7 +106,6 @@ set HTOX="%DL_DIR%\HtoX32c.exe"
 @rem psdtoolkitの最新バージョン取得
 findstr /C:"*  v" "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\tag.txt"
 set /p LINE=<"%FILE_DIR%\tag.txt"
-rem for /f "usebackq tokens=*" %%i in ()
 echo %LINE% > "%FILE_DIR%\tag.txt"
 set PSDTOOLKIT_VER=
 for /f "usebackq tokens=2" %%i in ("%FILE_DIR%\tag.txt") do (
@@ -162,6 +163,8 @@ if %PSDFILE_DATE% lss %GITHUB_PSD_DATE% (
     echo PSDToolkitは最新バージョンです
 )
 
+call :X264GUIEX_INSTALL
+
 rmdir /s /q "%DL_DIR%"
 rmdir /s /q "%FILE_DIR%"
 
@@ -190,8 +193,6 @@ set AVIUTL_ZIP=aviutl100.zip
 set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
-set X264GUIEX_VER=2.59
-set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 set PSDTOOLKIT_VER=v0.2beta35
 
 @rem AviUtlディレクトリ名
@@ -255,9 +256,6 @@ echo 拡張編集のダウンロード完了
 echo L-SMASHのダウンロード...
 call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
 echo L-SMASHのダウンロード完了
-echo x264guiExのダウンロード...
-call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
-echo x264guiExのダウンロード完了
 
 
 @rem AviUtlの展開
@@ -315,9 +313,7 @@ del "%AVIUTL_DIR%"\*.bin
 %SZEXE% x "%DL_DIR%\%EXEDIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
 %SZEXE% x "%DL_DIR%\%LSMASH_ZIP%" -aoa -o"%DL_DIR%"
 @move "%DL_DIR%\lw*.*" "%PLUGINS_DIR%"
-%SZEXE% x "%DL_DIR%\%X264GUIEX_ZIP%" -aoa -o"%TEMP%"
-"%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
-rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+call :X264GUIEX_INSTALL
 
 
 @rem 劇場向け環境構築
@@ -631,6 +627,18 @@ exit /b 0
     @rem 7z.exeを変数に格納
     set SZEXE="%SVZIP_DIR%\Files\7-Zip\7z.exe"
     echo 7zの展開完了
+exit /b
+
+@rem x264guiExのインストール
+:X264GUIEX_INSTALL
+echo x264guiExのダウンロード...
+call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
+echo x264guiExのダウンロード完了
+
+%SZEXE% x "%DL_DIR%\%X264GUIEX_ZIP%" -aoa -o"%TEMP%"
+"%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
+rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+
 exit /b
 
 @rem PSDToolkitのインストール
