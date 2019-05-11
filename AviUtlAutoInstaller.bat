@@ -45,6 +45,132 @@ if %ERRORLEVEL% equ 0 (
 
 set DL_RETRY=3
 
+
+where aviutl.exe > nul
+if %ERRORLEVEL% equ 0 (
+    call :PSDTOOLKIT_UPDATE
+) else (
+    goto :INSATALL
+)
+
+
+:PSDTOOLKIT_UPDATE
+@rem アップデート確認
+set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
+if /i not %UPDATE_SUCCESS%==Y (
+    call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
+    exit
+)
+
+@rem ディレクトリの設定
+@rem カレントディレクトリ
+set INSTALL_DIR_PRE=%~dp0
+set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
+set INSTALL_DIR=%INSTALL_DIR_PRE%
+set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
+@rem AviUtlディレクトリ
+set AVIUTL_DIR=%INSTALL_DIR%
+@rem pluginsディレクトリ
+set PLUGINS_DIR=%AVIUTL_DIR%\plugins
+@rem DLファイルの一時ディレクトリ
+set DL_DIR=%AVIUTL_DIR%\DL_TEMP
+mkdir "%DL_DIR%"
+@rem 出力ファイルの一時ディレクトリ
+set FILE_DIR=%AVIUTL_DIR%\FILE_TEMP
+mkdir "%FILE_DIR%"
+@rem 7zの展開ディレクトリ
+set SVZIP_DIR=%AVIUTL_DIR%\DL_TEMP\7z
+mkdir "%SVZIP_DIR%"
+@rem scriptディレクトリ
+set SCRIPT_DIR=%PLUGINS_DIR%\script
+
+@rem 7zの環境構築
+call :SZ_SETUP
+
+
+@rem PSDToolkitのアップデート
+@rem PSDToolkitのreleaseページ
+set PSDTOOLKIT_REPO=psd_github.html
+@rem releaseのhtmlファイルをDL
+call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases" "%DL_DIR%\%PSDTOOLKIT_REPO%"
+@rem HtoX(HTML解析ツール)のDL
+call :FILE_DOWNLOAD "http://win32lab.com/lib/htox4173.exe" "%DL_DIR%\htox4173.exe"
+@rem HtoXの自己解凍を実行
+"%DL_DIR%\htox4173.exe" /h
+set HTOX="%DL_DIR%\HtoX32c.exe"
+
+@rem htmlを解析
+%HTOX% /I8 "%DL_DIR%\%PSDTOOLKIT_REPO%" > "%FILE_DIR%\htmlparse.txt"
+@rem psdtoolkitの最新バージョン取得
+findstr /C:"*  v" "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\tag.txt"
+set /p LINE=<"%FILE_DIR%\tag.txt"
+rem for /f "usebackq tokens=*" %%i in ()
+echo %LINE% > "%FILE_DIR%\tag.txt"
+set PSDTOOLKIT_VER=
+for /f "usebackq tokens=2" %%i in ("%FILE_DIR%\tag.txt") do (
+    set PSDTOOLKIT_VER=%%i
+)
+
+@rem psdtoolkitの最新tagの日付取得
+findstr /C:"oov released this " "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.txt"
+@rem 1行目を代入
+set /p LINE=<"%FILE_DIR%\date.txt"
+@rem 年月日のみを抽出
+call :STRSTR "%LINE%" "this "
+set FRONT_LEN=%ERRORLEVEL%
+call :STRSTR "%LINE%" "・"
+set LAST_LEN=%ERRORLEVEL%
+set /a FRONT_LEN+=5
+set /a DIFF=%LAST_LEN%-%FRONT_LEN%
+set LINE=!LINE:~%FRONT_LEN%,%DIFF%!
+echo %LINE% > "%FILE_DIR%\date.txt"
+@rem 年月日を変数毎に分割
+set YEAR=
+set MONTH=
+set DAY=
+for /f "usebackq tokens=1,2,3" %%i in ("%FILE_DIR%\date.txt") do (
+    set MONTH=%%i
+    set DAY=%%j
+    set YEAR=%%k
+)
+
+@rem 文字列の月を数字に変換
+call :CONV_MONTH "%MONTH%"
+set MONTH=%ERRORLEVEL%
+@rem GitHubのリリース日(yyyy/M/d)を代入
+set GITHUB_PSD_DATE=%YEAR%/%MONTH%/%DAY:,=%
+@rem PSDToolkitの更新日時を取得
+set PSDFILE_DATETIME_PRE=
+for %%i in (plugins\PSDToolKit.auf) do (
+    set PSDFILE_DATETIME_PRE=%%~ti
+)
+
+call :CONV_UTC "%PSDFILE_DATETIME_PRE%"
+set PSDFILE_DATETIME=!DT!
+echo !PSDFILE_DATETIME! > "%FILE_DIR%\psddatetime.txt"
+
+set PSDFILE_DATE=
+for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\psddatetime.txt") do (
+    set PSDFILE_DATE=%%i
+)
+if %PSDFILE_DATE% lss %GITHUB_PSD_DATE% (
+    echo 最新バージョン %PSDTOOLKIT_VER% があります
+    @rem PSDToolkit
+   rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
+    call :PSDTOOLKIT_INSTALL
+) else (
+    echo PSDToolkitは最新バージョンです
+)
+
+rmdir /s /q "%DL_DIR%"
+rmdir /s /q "%FILE_DIR%"
+
+call :SHOW_MSG "アップデートが完了しました" vbInformation "情報" "modal"
+
+exit
+
+
+:INSATALL
 echo script version 2.2.0
 echo これはAviUtlの環境を構築するプログラムです。
 echo また、劇場向けの構成となります。
@@ -67,7 +193,6 @@ set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 set X264GUIEX_VER=2.59
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 set PSDTOOLKIT_VER=v0.2beta35
-set PSDTOOLKIT_ZIP=psdtoolkit_%PSDTOOLKIT_VER%.zip
 
 @rem AviUtlディレクトリ名
 set AVIUTL_DIR_NAME=AviUtl
@@ -116,19 +241,7 @@ set SVZIP_DIR=%AVIUTL_DIR%\7z
 
 
 @rem 7zの環境構築
-echo 7zのダウンロード...
-powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://ja.osdn.net/frs/redir.php?m=jaist^&f=sevenzip%%2F70468%%2F7z1806.msi\",\"%DL_DIR%\7z.msi\")"
-if %ERRORLEVEL% neq 0 (
-    call :CONNECT_ERROR
-    exit
-)
-echo 7zのダウンロード完了
-@rem DLした7zを展開
-echo 7zの展開...
-msiexec /a "%DL_DIR%\7z.msi" targetdir="%SVZIP_DIR%" /qn
-@rem 7z.exeを変数に格納
-set SZEXE="%SVZIP_DIR%\Files\7-Zip\7z.exe"
-echo 7zの展開完了
+call :SZ_SETUP
 
 
 @rem 基本環境構築
@@ -213,7 +326,8 @@ rmdir /s /q "%DL_DIR%"
 mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
 
 @rem 劇場向けファイルのDL
-call :File_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/%PSDTOOLKIT_ZIP%" "%DL_DIR%\%PSDTOOLKIT_ZIP%"
+@rem PSDToolkit
+call :PSDTOOLKIT_INSTALL
 
 @rem 風揺れ
 call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/WindShk.zip"  "%DL_DIR%\WindShk.zip"
@@ -236,15 +350,6 @@ call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/LinHal.zip" "%DL_DIR%\LinHa
 @rem PNG出力
 call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
 
-
-@rem PSDToolKitを展開
-%SZEXE% x "%DL_DIR%\%PSDTOOLKIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
-mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\PSDToolKitの説明ファイル群
-@move "%PLUGINS_DIR%\PSDToolKitDocs" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
-@move "%PLUGINS_DIR%\*.txt" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
-@move "%PLUGINS_DIR%\*.html" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
-@move "%AVIUTL_DIR%\PSDToolKitの説明ファイル群\exedit.txt" "%PLUGINS_DIR%"
-@move "%AVIUTL_DIR%\PSDToolKitの説明ファイル群\lua.txt" "%PLUGINS_DIR%"
 
 @rem ティム氏のスクリプトを展開
 set TIM3_DIR_MK=%SCRIPT_DIR_MK%\ティム氏
@@ -355,6 +460,191 @@ exit /b
     )
     echo msgbox %1,%2  Or %MSG_MODAL%,%3 > %TEMP%\msgbox.vbs & %TEMP%\msgbox.vbs
     del %TEMP%\msgbox.vbs
+exit /b
+
+@rem 文字列検索
+@rem 引数: %1-検索対象 %2-検索する文字列
+@rem 戻り値 0<:ヒットした位置 -1:%1が空白 -2:%2が空白 -3:ヒットなし
+:STRSTR
+    if "%~1" equ "" exit /b -1
+    if "%~2" equ "" exit /b -2
+    set s1=%~1
+    set s2=%~2
+    set s1_p=0
+    set s2_p=0
+:STRSTR_LOOP
+    if /I "!s1:~%s1_p%,1!" neq "!s2:~%s2_p%,1!" (
+        @rem 不一致
+        set s2_p=0
+    ) else (
+        set /a s2_p+=1
+    )
+    set /a s1_p+=1
+    if "!s2:~%s2_p%,1!" equ "" (
+        set /a s1_p-=s2_p
+        exit /b !s1_p!
+    )
+    if "!s1:~%s1_p%,1!" equ "" exit /b -3
+    goto :STRSTR_LOOP
+
+@rem 英語の月表記から数字に変換
+@rem 引数: %1-英語表記の月
+@rem 戻り値 1～12:変換された月 -1:該当なし -2:引数エラー
+:CONV_MONTH
+    if "%~1" equ "" exit /b -1
+    if %1=="January"   goto :M_JAN
+    if %1=="JANUARY"   goto :M_JAN
+    if %1=="Jan"       goto :M_JAN
+    if %1=="JAN"       goto :M_JAN
+    if %1=="February"  goto :M_FEB
+    if %1=="FEBRUARY"  goto :M_FEB
+    if %1=="Feb"       goto :M_FEB
+    if %1=="FEB"       goto :M_FEB
+    if %1=="March"     goto :M_MAR
+    if %1=="MARCH"     goto :M_MAR
+    if %1=="Mar"       goto :M_MAR
+    if %1=="MAR"       goto :M_MAR
+    if %1=="April"     goto :M_APR
+    if %1=="APRIL"     goto :M_APR
+    if %1=="Apr"       goto :M_APR
+    if %1=="APR"       goto :M_APR
+    if %1=="May"       goto :M_MAY
+    if %1=="MAY"       goto :M_MAY
+    if %1=="June"      goto :M_JUN
+    if %1=="JUNE"      goto :M_JUN
+    if %1=="Jun"       goto :M_JUN
+    if %1=="JUN"       goto :M_JUN
+    if %1=="July"      goto :M_JUL
+    if %1=="JULY"      goto :M_JUL
+    if %1=="Jul"       goto :M_JUL
+    if %1=="JUL"       goto :M_JUL
+    if %1=="August"    goto :M_AUG
+    if %1=="AUGUST"    goto :M_AUG
+    if %1=="Aug"       goto :M_AUG
+    if %1=="AUG"       goto :M_AUG
+    if %1=="September" goto :M_SEP
+    if %1=="SEPTEMBER" goto :M_SEP
+    if %1=="Sep"       goto :M_SEP
+    if %1=="SEP"       goto :M_SEP
+    if %1=="October"   goto :M_OCT
+    if %1=="OCTOBER"   goto :M_OCT
+    if %1=="Oct"       goto :M_OCT
+    if %1=="OCT"       goto :M_OCT
+    if %1=="November"  goto :M_NOV
+    if %1=="NOVEMBER"  goto :M_NOV
+    if %1=="Nov"       goto :M_NOV
+    if %1=="NOV"       goto :M_NOV
+    if %1=="December"  goto :M_DEC
+    if %1=="DECEMBER"  goto :M_DEC
+    if %1=="Dec"       goto :M_DEC
+    if %1=="DEC"       goto :M_DEC
+    goto :M_OTHER
+
+    :M_JAN
+        exit /b 1
+    :M_FEB
+        exit /b 2
+    :M_MAR
+        exit /b 3
+    :M_APR
+        exit /b 4
+    :M_MAY
+        exit /b 5
+    :M_JUN
+        exit /b 6
+    :M_JUL
+        exit /b 7
+    :M_AUG
+        exit /b 8
+    :M_SEP
+        exit /b 9
+    :M_OCT
+        exit /b 10
+    :M_NOV
+        exit /b 11
+    :M_DEC
+        exit /b 12
+    :M_OTHER
+        exit /b -2
+
+@rem JST日時(yyyy/M/d HH:mm)からUTC年月日(yyyy/M/d)へ変換する
+@rem 変数:DTに格納される
+@rem 引数: %1-計算対象日時
+@rem 戻り値 0:変換成功 -1:引数エラー
+:CONV_UTC
+    if "%~1" equ "" exit /b -1
+    set DT=%~1
+    set DT=%DT:/= %
+    set DT=%DT::= %
+    echo !DT! > %TEMP%\dt.txt
+    for /f "tokens=1,2,3,4,5" %%a in (%TEMP%\dt.txt) do (
+        set Y=%%a
+        set /a MO=1%%b-100
+        set /a D=1%%c-100
+        set /a H=1%%d-100
+        set /a MI=1%%e-100
+    )
+    set /a H_PRE=!H!-9
+    if !H_PRE! lss 0 (
+        set /a D=!D!-1
+        if !D! equ 0 (
+            set T_F=false
+            if not !MO! equ 3 if not !MO! equ 5 if not !MO! equ 7 if not !MO! equ 8 if not !MO! equ 10 if not !MO! equ 12 set T_F=true
+            if !T_F!==true (
+                set D=31
+            ) else (
+                if !MO! equ 3 (
+                    set /a RC=!Y!%%4
+                    if !RC! equ 0 (
+                        set D=29
+                    ) else (
+                        set D=28
+                    )
+                ) else (
+                    set D=30
+                )
+            )
+            if !MO! equ 1 (
+                set MO=12
+                set /a Y=!Y!-1
+            ) else (
+                set /a MO=!MO!-1
+            )
+        )
+    )
+    del %TEMP%\dt.txt
+    set DT=!Y!/!MO!/!D! !H!:!MI!
+exit /b 0
+
+@rem 7zの環境構築
+: SZ_SETUP
+    echo 7zのダウンロード...
+    powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://ja.osdn.net/frs/redir.php?m=jaist^&f=sevenzip%%2F70468%%2F7z1806.msi\",\"%DL_DIR%\7z.msi\")"
+    if %ERRORLEVEL% neq 0 (
+        call :CONNECT_ERROR
+        exit
+    )
+    echo 7zのダウンロード完了
+    @rem DLした7zを展開
+    echo 7zの展開...
+    msiexec /a "%DL_DIR%\7z.msi" targetdir="%SVZIP_DIR%" /qn
+    @rem 7z.exeを変数に格納
+    set SZEXE="%SVZIP_DIR%\Files\7-Zip\7z.exe"
+    echo 7zの展開完了
+exit /b
+
+@rem PSDToolkitのインストール
+:PSDTOOLKIT_INSTALL
+    call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/psdtoolkit_%PSDTOOLKIT_VER%.zip" "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip"
+    @rem PSDToolKitを展開
+    %SZEXE% x "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
+
+    mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\PSDToolKitの説明ファイル群
+    @move "%PLUGINS_DIR%\PSDToolKitDocs" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
+    @move "%PLUGINS_DIR%\*.txt" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
+    @move "%PLUGINS_DIR%\*.html" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
+    @move "%AVIUTL_DIR%\PSDToolKitの説明ファイル群\exedit.txt" "%PLUGINS_DIR%"
+    @move "%AVIUTL_DIR%\PSDToolKitの説明ファイル群\lua.txt" "%PLUGINS_DIR%"
 exit /b
 
 @rem リリースノート
