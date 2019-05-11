@@ -91,6 +91,9 @@ set SCRIPT_DIR=%PLUGINS_DIR%\script
 @rem 7zの環境構築
 call :SZ_SETUP
 
+@rem HtoXの環境構築
+call :HTOX_SETUP
+
 
 @rem PSDToolkitのアップデート
 call :PSDTOOLKIT_PRE_ROUTINE
@@ -178,8 +181,10 @@ set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
 @rem AviUtlディレクトリ名
 set AVIUTL_DIR_NAME=AviUtl
-@rem ファイルの一時ディレクトリ名
+@rem DLファイルの一時ディレクトリ名
 set DL_DIR_NAME=DL_TEMP
+@rem 出力ファイル一時ディレクトリ名
+set FILE_DIR_NAME=FILE_TEMP
 @rem pluginsディレクトリ名
 set PLUGINS_DIR_NAME=plugins
 @rem figureディレクトリ名
@@ -195,6 +200,9 @@ mkdir %AVIUTL_DIR_MK%
 @rem ファイルの一時ディレクトリ作成
 set DL_TEMP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
 mkdir %DL_TEMP_DIR_MK%
+@rem 出力ファイルディレクトリ作成
+set FILE_TEMP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%FILE_DIR_NAME%
+mkdir %FILE_TEMP_DIR_MK%
 @rem pluginsディレクトリ作成
 set PLUGINS_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%PLUGINS_DIR_NAME%
 mkdir %PLUGINS_DIR_MK%
@@ -212,6 +220,8 @@ mkdir %SVZIP_DIR_MK%
 set AVIUTL_DIR=%INSTALL_DIR%\AviUtl
 @rem ファイルの一時ディレクトリ
 set DL_DIR=%AVIUTL_DIR%\DL_TEMP
+@rem 出力ファイルディレクトリ
+set FILE_DIR=%AVIUTL_DIR%\FILE_TEMP
 @rem pluginsディレクトリ
 set PLUGINS_DIR=%AVIUTL_DIR%\plugins
 @rem figureディレクトリ
@@ -224,6 +234,9 @@ set SVZIP_DIR=%AVIUTL_DIR%\7z
 
 @rem 7zの環境構築
 call :SZ_SETUP
+
+@rem HtoXの環境構築
+call :HTOX_SETUP
 
 
 @rem 基本環境構築
@@ -298,10 +311,6 @@ call :X264GUIEX_INSTALL
 
 
 @rem 劇場向け環境構築
-@rem 一時ディレクトリを再作成
-rmdir /s /q "%DL_DIR%"
-mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
-
 @rem 劇場向けファイルのDL
 @rem PSDToolkit
 set PSDTOOLKIT_VER=
@@ -353,6 +362,7 @@ call :EXEC_AVIUTL
 
 @rem 後始末
 rmdir /s /q "%DL_DIR%"
+rmdir /s /q "%FILE_DIR%"
 rmdir /s /q "%SVZIP_DIR%"
 
 call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
@@ -596,7 +606,7 @@ exit /b
 exit /b 0
 
 @rem 7zの環境構築
-: SZ_SETUP
+:SZ_SETUP
     echo 7zのダウンロード...
     powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://ja.osdn.net/frs/redir.php?m=jaist^&f=sevenzip%%2F70468%%2F7z1806.msi\",\"%DL_DIR%\7z.msi\")"
     if %ERRORLEVEL% neq 0 (
@@ -610,6 +620,15 @@ exit /b 0
     @rem 7z.exeを変数に格納
     set SZEXE="%SVZIP_DIR%\Files\7-Zip\7z.exe"
     echo 7zの展開完了
+exit /b
+
+@rem HtoXの環境構築
+:HTOX_SETUP
+    @rem HtoX(HTML解析ツール)のDL
+    call :FILE_DOWNLOAD "http://win32lab.com/lib/htox4173.exe" "%DL_DIR%\htox4173.exe"
+    @rem HtoXの自己解凍を実行
+    %SZEXE% x "%DL_DIR%\htox4173.exe" -aoa -o"%DL_DIR%"
+    set HTOX="%DL_DIR%\HtoX32c.exe"
 exit /b
 
 @rem x264guiExのインストール
@@ -630,11 +649,6 @@ exit /b
     set PSDTOOLKIT_REPO=psd_github.html
     @rem releaseのhtmlファイルをDL
     call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases" "%DL_DIR%\%PSDTOOLKIT_REPO%"
-    @rem HtoX(HTML解析ツール)のDL
-    call :FILE_DOWNLOAD "http://win32lab.com/lib/htox4173.exe" "%DL_DIR%\htox4173.exe"
-    @rem HtoXの自己解凍を実行
-    "%DL_DIR%\htox4173.exe" /h
-    set HTOX="%DL_DIR%\HtoX32c.exe"
     @rem htmlを解析
     %HTOX% /I8 "%DL_DIR%\%PSDTOOLKIT_REPO%" > "%FILE_DIR%\htmlparse.txt"
     @rem psdtoolkitの最新バージョン取得
