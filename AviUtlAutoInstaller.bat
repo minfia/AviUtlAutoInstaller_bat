@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=3.0.1
+set SCRIPT_VER=3.1.0
 
 @rem PowerShellのバージョンチェックをする
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -698,6 +698,9 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/7/4 (v3.1.0)
+@rem     GitHubのリリース日の取得を修正
+@rem     エラー処理を追加
 @rem 2019/5/12 (v3.0.1)
 @rem     インデントとコメント,初回インストール時のコメントをメンテナンス
 @rem 2019/5/12 (v3.0.0)
