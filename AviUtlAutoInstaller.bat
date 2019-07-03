@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=3.0.1
+set SCRIPT_VER=3.1.0
 
 @rem PowerShellのバージョンチェックをする
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -103,8 +103,17 @@ findstr /C:"oov released this " "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.tx
 set /p LINE=<"%FILE_DIR%\date.txt"
 @rem 年月日のみを抽出
 call :STRSTR "%LINE%" "this "
+if %ERRORLEVEL% equ -3 (
+    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容を製作者に報告してください" vbCritical "エラー" "modal"
+    rmdir /s /q "%DL_DIR%"
+    rmdir /s /q "%FILE_DIR%"
+    exit
+)
 set FRONT_LEN=%ERRORLEVEL%
 call :STRSTR "%LINE%" "・"
+if %ERRORLEVEL% equ -3 (
+    call :STRLEN "%LINE%" 
+)
 set LAST_LEN=%ERRORLEVEL%
 set /a FRONT_LEN+=5
 set /a DIFF=%LAST_LEN%-%FRONT_LEN%
@@ -476,6 +485,19 @@ exit /b
     if "!s1:~%s1_p%,1!" equ "" exit /b -3
     goto :STRSTR_LOOP
 
+@rem 文字列の長さを返す
+@rem 引数: %1-検索対象
+@rem 戻り値 0<=:文字数 -1:%1が空白
+:STRLEN
+    if "%~1" equ "" exit /b -1
+    set str=%~1
+    set len=0
+:STRLEN_LOOP
+    if "%str%" equ "" exit /b %len%
+    set str=%str:~1%
+    set /a len+=1
+    goto :STRLEN_LOOP
+
 @rem 英語の月表記から数字に変換
 @rem 引数: %1-英語表記の月
 @rem 戻り値 1～12:変換された月 -1:該当なし -2:引数エラー
@@ -676,6 +698,9 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/7/4 (v3.1.0)
+@rem     GitHubのリリース日の取得を修正
+@rem     エラー処理を追加
 @rem 2019/5/12 (v3.0.1)
 @rem     インデントとコメント,初回インストール時のコメントをメンテナンス
 @rem 2019/5/12 (v3.0.0)
