@@ -103,6 +103,12 @@ findstr /C:"oov released this " "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.tx
 set /p LINE=<"%FILE_DIR%\date.txt"
 @rem 年月日のみを抽出
 call :STRSTR "%LINE%" "this "
+if %ERRORLEVEL% equ -3 (
+    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容を製作者に報告してください" vbCritical "エラー" "modal"
+    rmdir /s /q "%DL_DIR%"
+    rmdir /s /q "%FILE_DIR%"
+    exit
+)
 set FRONT_LEN=%ERRORLEVEL%
 call :STRSTR "%LINE%" "・"
 if %ERRORLEVEL% equ -3 (
