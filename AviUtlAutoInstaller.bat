@@ -29,7 +29,7 @@ title AviUtl Auto Installer
 
 set SCRIPT_VER=3.1.0
 
-@rem PowerShellのバージョンチェックをする
+@rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
     set PSVER=%%a
 )
@@ -38,7 +38,7 @@ if not %PSVER% geq 3 (
     exit
 )
 
-@rem 実行前にAviUtlが起動していた場合に注意する
+@rem 実行前にAviUtlが起動していた場合にエラー
 call :SEARCH_EXE
 if %ERRORLEVEL% equ 0 (
     call :SHOW_MSG "AviUtlが起動されています、AviUtlを終了してください" vbCritical "エラー" "modal"
@@ -104,7 +104,7 @@ set /p LINE=<"%FILE_DIR%\date.txt"
 @rem 年月日のみを抽出
 call :STRSTR "%LINE%" "this "
 if %ERRORLEVEL% equ -3 (
-    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容を製作者に報告してください" vbCritical "エラー" "modal"
+    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容をバッチファイル製作者に報告してください" vbCritical "エラー" "modal"
     rmdir /s /q "%DL_DIR%"
     rmdir /s /q "%FILE_DIR%"
     exit
@@ -500,7 +500,7 @@ exit /b
 
 @rem 英語の月表記から数字に変換
 @rem 引数: %1-英語表記の月
-@rem 戻り値 1～12:変換された月 -1:該当なし -2:引数エラー
+@rem 戻り値 1～12:変換された月 -1:引数なし -2:引数エラー
 :CONV_MONTH
     if "%~1" equ "" exit /b -1
     if %1=="January"   goto :M_JAN
