@@ -503,52 +503,29 @@ exit /b
 @rem ñﬂÇËíl 1Å`12:ïœä∑Ç≥ÇÍÇΩåé -1:à¯êîÇ»Çµ -2:à¯êîÉGÉâÅ[
 :CONV_MONTH
     if "%~1" equ "" exit /b -1
-    if %1=="January"   goto :M_JAN
-    if %1=="JANUARY"   goto :M_JAN
-    if %1=="Jan"       goto :M_JAN
-    if %1=="JAN"       goto :M_JAN
-    if %1=="February"  goto :M_FEB
-    if %1=="FEBRUARY"  goto :M_FEB
-    if %1=="Feb"       goto :M_FEB
-    if %1=="FEB"       goto :M_FEB
-    if %1=="March"     goto :M_MAR
-    if %1=="MARCH"     goto :M_MAR
-    if %1=="Mar"       goto :M_MAR
-    if %1=="MAR"       goto :M_MAR
-    if %1=="April"     goto :M_APR
-    if %1=="APRIL"     goto :M_APR
-    if %1=="Apr"       goto :M_APR
-    if %1=="APR"       goto :M_APR
-    if %1=="May"       goto :M_MAY
-    if %1=="MAY"       goto :M_MAY
-    if %1=="June"      goto :M_JUN
-    if %1=="JUNE"      goto :M_JUN
-    if %1=="Jun"       goto :M_JUN
-    if %1=="JUN"       goto :M_JUN
-    if %1=="July"      goto :M_JUL
-    if %1=="JULY"      goto :M_JUL
-    if %1=="Jul"       goto :M_JUL
-    if %1=="JUL"       goto :M_JUL
-    if %1=="August"    goto :M_AUG
-    if %1=="AUGUST"    goto :M_AUG
-    if %1=="Aug"       goto :M_AUG
-    if %1=="AUG"       goto :M_AUG
-    if %1=="September" goto :M_SEP
-    if %1=="SEPTEMBER" goto :M_SEP
-    if %1=="Sep"       goto :M_SEP
-    if %1=="SEP"       goto :M_SEP
-    if %1=="October"   goto :M_OCT
-    if %1=="OCTOBER"   goto :M_OCT
-    if %1=="Oct"       goto :M_OCT
-    if %1=="OCT"       goto :M_OCT
-    if %1=="November"  goto :M_NOV
-    if %1=="NOVEMBER"  goto :M_NOV
-    if %1=="Nov"       goto :M_NOV
-    if %1=="NOV"       goto :M_NOV
-    if %1=="December"  goto :M_DEC
-    if %1=="DECEMBER"  goto :M_DEC
-    if %1=="Dec"       goto :M_DEC
-    if %1=="DEC"       goto :M_DEC
+    if /i %1=="January"   goto :M_JAN
+    if /i %1=="Jan"       goto :M_JAN
+    if /i %1=="February"  goto :M_FEB
+    if /i %1=="Feb"       goto :M_FEB
+    if /i %1=="March"     goto :M_MAR
+    if /i %1=="Mar"       goto :M_MAR
+    if /i %1=="April"     goto :M_APR
+    if /i %1=="Apr"       goto :M_APR
+    if /i %1=="May"       goto :M_MAY
+    if /i %1=="June"      goto :M_JUN
+    if /i %1=="Jun"       goto :M_JUN
+    if /i %1=="July"      goto :M_JUL
+    if /i %1=="Jul"       goto :M_JUL
+    if /i %1=="August"    goto :M_AUG
+    if /i %1=="Aug"       goto :M_AUG
+    if /i %1=="September" goto :M_SEP
+    if /i %1=="Sep"       goto :M_SEP
+    if /i %1=="October"   goto :M_OCT
+    if /i %1=="Oct"       goto :M_OCT
+    if /i %1=="November"  goto :M_NOV
+    if /i %1=="Nov"       goto :M_NOV
+    if /i %1=="December"  goto :M_DEC
+    if /i %1=="Dec"       goto :M_DEC
     goto :M_OTHER
 
     :M_JAN
