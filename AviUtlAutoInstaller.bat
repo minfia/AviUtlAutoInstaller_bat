@@ -49,9 +49,11 @@ set DL_RETRY=3
 set X264GUIEX_VER=2.59
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 
+set SEL_UPDATE=0
 
 where aviutl.exe > nul
 if %ERRORLEVEL% equ 0 (
+    set SEL_UPDATE=1
     call :PSDTOOLKIT_UPDATE
 ) else (
     goto :INSATALL
@@ -72,28 +74,9 @@ set INSTALL_DIR_PRE=%~dp0
 set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
 set INSTALL_DIR=%INSTALL_DIR_PRE%
 set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
-@rem AviUtlディレクトリ
-set AVIUTL_DIR=%INSTALL_DIR%
-@rem pluginsディレクトリ
-set PLUGINS_DIR=%AVIUTL_DIR%\plugins
-@rem DLファイルの一時ディレクトリ
-set DL_DIR=%AVIUTL_DIR%\DL_TEMP
-mkdir "%DL_DIR%"
-@rem 出力ファイルの一時ディレクトリ
-set FILE_DIR=%AVIUTL_DIR%\FILE_TEMP
-mkdir "%FILE_DIR%"
-@rem 7zの展開ディレクトリ
-set SVZIP_DIR=%AVIUTL_DIR%\DL_TEMP\7z
-mkdir "%SVZIP_DIR%"
-@rem scriptディレクトリ
-set SCRIPT_DIR=%PLUGINS_DIR%\script
 
-@rem 7zの環境構築
-call :SZ_SETUP
-
-@rem HtoXの環境構築
-call :HTOX_SETUP
-
+@rem 作業環境構築
+call :WORKING_ENV_SETUP
 
 @rem PSDToolkitのアップデート
 call :PSDTOOLKIT_PRE_ROUTINE
@@ -188,65 +171,8 @@ set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
-@rem AviUtlディレクトリ名
-set AVIUTL_DIR_NAME=AviUtl
-@rem DLファイルの一時ディレクトリ名
-set DL_DIR_NAME=DL_TEMP
-@rem 出力ファイル一時ディレクトリ名
-set FILE_DIR_NAME=FILE_TEMP
-@rem pluginsディレクトリ名
-set PLUGINS_DIR_NAME=plugins
-@rem figureディレクトリ名
-set FIGURE_DIR_NAME=figure
-@rem scriptディレクトリ名
-set SCRIPT_DIR_NAME=script
-@rem 7zディレクトリ名
-set SVZIP_DIR_NAME=7z
-
-@rem AviUtlディレクトリ作成
-set AVIUTL_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%
-mkdir %AVIUTL_DIR_MK%
-@rem ファイルの一時ディレクトリ作成
-set DL_TEMP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
-mkdir %DL_TEMP_DIR_MK%
-@rem 出力ファイルディレクトリ作成
-set FILE_TEMP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%FILE_DIR_NAME%
-mkdir %FILE_TEMP_DIR_MK%
-@rem pluginsディレクトリ作成
-set PLUGINS_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%PLUGINS_DIR_NAME%
-mkdir %PLUGINS_DIR_MK%
-@rem figureディレクトリ作成
-set FIGURE_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%PLUGINS_DIR_NAME%\%FIGURE_DIR_NAME%
-mkdir %FIGURE_DIR_MK%
-@rem scriptディレクトリ作成
-set SCRIPT_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%PLUGINS_DIR_NAME%\%SCRIPT_DIR_NAME%
-mkdir %SCRIPT_DIR_MK%
-@rem 7zディレクトリ作成
-set SVZIP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%SVZIP_DIR_NAME%
-mkdir %SVZIP_DIR_MK%
-
-@rem AviUtlディレクトリ
-set AVIUTL_DIR=%INSTALL_DIR%\AviUtl
-@rem ファイルの一時ディレクトリ
-set DL_DIR=%AVIUTL_DIR%\DL_TEMP
-@rem 出力ファイルディレクトリ
-set FILE_DIR=%AVIUTL_DIR%\FILE_TEMP
-@rem pluginsディレクトリ
-set PLUGINS_DIR=%AVIUTL_DIR%\plugins
-@rem figureディレクトリ
-set FIGURE_DIR=%PLUGINS_DIR%\figure
-@rem scriptディレクトリ
-set SCRIPT_DIR=%PLUGINS_DIR%\script
-@rem 7zの展開ディレクトリ
-set SVZIP_DIR=%AVIUTL_DIR%\7z
-
-
-@rem 7zの環境構築
-call :SZ_SETUP
-
-@rem HtoXの環境構築
-call :HTOX_SETUP
-
+@rem 作業環境構築
+call :WORKING_ENV_SETUP
 
 @rem 基本環境構築
 @rem 基本ファイルのDL
@@ -379,6 +305,52 @@ call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
 exit
 
 @rem 以下、サブルーチン
+
+@rem Install/Update環境構築
+@rem 7zとHtoX
+:WORKING_ENV_SETUP
+    if %SEL_UPDATE% equ 0 (
+        @rem インストールを選択
+        @rem ディレクトリの作成
+        set AVIUTL_DIR_MK=%INSTALL_DIR_PRE%\AviUtl
+        set PLUGINS_DIR_MK=!AVIUTL_DIR_MK!\plugins
+        set FIGURE_DIR_MK=!PLUGINS_DIR_MK!\figure
+        set SCRIPT_DIR_MK=!PLUGINS_DIR_MK!\script
+        set DL_TEMP_DIR_MK=!AVIUTL_DIR_MK!\DL_TEMP
+        set SVZIP_DIR_MK=!DL_TEMP_DIR_MK!\7z
+        set FILE_TEMP_DIR_MK=!AVIUTL_DIR_MK!\FILE_TEMP
+        @rem ディレクトリの作成(すでに存在する場合はそのエラーを出力しないように)
+        mkdir !AVIUTL_DIR_MK! !PLUGINS_DIR_MK! !SCRIPT_DIR_MK! !FIGURE_DIR_MK! > nul 2>&1
+        mkdir !DL_TEMP_DIR_MK! !SVZIP_DIR_MK! !FILE_TEMP_DIR_MK! > nul 2>&1
+
+        @rem 作業ディレクトリの設定
+        set AVIUTL_DIR=%INSTALL_DIR%\AviUtl
+        set PLUGINS_DIR=!AVIUTL_DIR!\plugins
+        set FIGURE_DIR=!PLUGINS_DIR!\figure
+        set SCRIPT_DIR=!PLUGINS_DIR!\script
+        set DL_DIR=!AVIUTL_DIR!\DL_TEMP
+        set SVZIP_DIR=!DL_DIR!\7z
+        set FILE_DIR=!AVIUTL_DIR!\FILE_TEMP
+    ) else (
+        @rem アップデートを選択
+        @rem AviUtlディレクトリ
+        set AVIUTL_DIR=%INSTALL_DIR%
+        @rem pluginsディレクトリ
+        set PLUGINS_DIR=!AVIUTL_DIR!\plugins
+        @rem scriptディレクトリ
+        set SCRIPT_DIR=!PLUGINS_DIR!\script
+
+        @rem DLファイルの一時ディレクトリ
+        set DL_DIR=!AVIUTL_DIR!\DL_TEMP
+        @rem 出力ファイルの一時ディレクトリ
+        set FILE_DIR=!AVIUTL_DIR!\FILE_TEMP
+        @rem 7zの展開ディレクトリ
+        set SVZIP_DIR=!AVIUTL_DIR!\DL_TEMP\7z
+        mkdir "!DL_DIR!" "!FILE_DIR!" "!SVZIP_DIR!"
+    )
+    call :SZ_SETUP
+    call :HTOX_SETUP
+exit /b
 
 @rem ファイルから完全一致の行を検索する
 @rem 引数: %1-ファイル %2-検索する文字列
@@ -666,7 +638,7 @@ exit /b
     @rem PSDToolKitを展開
     %SZEXE% x "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 
-    mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\PSDToolKitの説明ファイル群
+    mkdir %INSTALL_DIR_PRE%\AviUtl\PSDToolKitの説明ファイル群
     @move "%PLUGINS_DIR%\PSDToolKitDocs" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.txt" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.html" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
