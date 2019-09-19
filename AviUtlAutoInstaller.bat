@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=3.1.0
+set SCRIPT_VER=3.2.0
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -653,6 +653,11 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/9/19(v3.2.0)
+@rem     LargeAddressAwareを有効化後のaviutl.exeの更新日をオリジナルと同じにするように変更
+@rem     作業環境構築ルーチン追加
+@rem     英語表記の月の条件分岐を修正
+@rem     文章の修正
 @rem 2019/7/4 (v3.1.0)
 @rem     GitHubのリリース日の取得を修正
 @rem     エラー処理を追加
