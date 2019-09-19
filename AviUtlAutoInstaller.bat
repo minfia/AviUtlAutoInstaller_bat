@@ -190,6 +190,11 @@ echo L-SMASHのダウンロード完了
 @rem AviUtlの展開
 %SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
 
+set AVIUTL_DATE=
+for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
+    set AVIUTL_DATE=%%~ti
+)
+
 @rem LargeAddressAwareを有効化
 echo AviUtlのLargeAddressAwareを有効にします(これには1分ほどかかります)
 echo 0%%完了
@@ -200,6 +205,7 @@ echo 50%%完了
 powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -last 487161 | Set-Content -en byte \"%AVIUTL_DIR%\A-2.bin\""
 echo 75%%完了
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.exe"
+powershell -Command "Set-ItemProperty \"%AVIUTL_DIR%\aviutl.exe\" -name LastWriteTime -value \"%AVIUTL_DATE%""
 del "%AVIUTL_DIR%"\*.bin
 echo 100%%完了
 
