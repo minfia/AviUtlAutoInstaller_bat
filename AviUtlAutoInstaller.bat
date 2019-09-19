@@ -27,9 +27,9 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=3.1.0
+set SCRIPT_VER=3.2.0
 
-@rem PowerShellのバージョンチェックをする
+@rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
     set PSVER=%%a
 )
@@ -38,7 +38,7 @@ if not %PSVER% geq 3 (
     exit
 )
 
-@rem 実行前にAviUtlが起動していた場合に注意する
+@rem 実行前にAviUtlが起動していた場合にエラー
 call :SEARCH_EXE
 if %ERRORLEVEL% equ 0 (
     call :SHOW_MSG "AviUtlが起動されています、AviUtlを終了してください" vbCritical "エラー" "modal"
@@ -49,9 +49,11 @@ set DL_RETRY=3
 set X264GUIEX_VER=2.59
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 
+set SEL_UPDATE=0
 
 where aviutl.exe > nul
 if %ERRORLEVEL% equ 0 (
+    set SEL_UPDATE=1
     call :PSDTOOLKIT_UPDATE
 ) else (
     goto :INSATALL
@@ -72,28 +74,9 @@ set INSTALL_DIR_PRE=%~dp0
 set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
 set INSTALL_DIR=%INSTALL_DIR_PRE%
 set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
-@rem AviUtlディレクトリ
-set AVIUTL_DIR=%INSTALL_DIR%
-@rem pluginsディレクトリ
-set PLUGINS_DIR=%AVIUTL_DIR%\plugins
-@rem DLファイルの一時ディレクトリ
-set DL_DIR=%AVIUTL_DIR%\DL_TEMP
-mkdir "%DL_DIR%"
-@rem 出力ファイルの一時ディレクトリ
-set FILE_DIR=%AVIUTL_DIR%\FILE_TEMP
-mkdir "%FILE_DIR%"
-@rem 7zの展開ディレクトリ
-set SVZIP_DIR=%AVIUTL_DIR%\DL_TEMP\7z
-mkdir "%SVZIP_DIR%"
-@rem scriptディレクトリ
-set SCRIPT_DIR=%PLUGINS_DIR%\script
 
-@rem 7zの環境構築
-call :SZ_SETUP
-
-@rem HtoXの環境構築
-call :HTOX_SETUP
-
+@rem 作業環境構築
+call :WORKING_ENV_SETUP
 
 @rem PSDToolkitのアップデート
 call :PSDTOOLKIT_PRE_ROUTINE
@@ -104,7 +87,7 @@ set /p LINE=<"%FILE_DIR%\date.txt"
 @rem 年月日のみを抽出
 call :STRSTR "%LINE%" "this "
 if %ERRORLEVEL% equ -3 (
-    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容を製作者に報告してください" vbCritical "エラー" "modal"
+    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容をバッチファイル製作者に報告してください" vbCritical "エラー" "modal"
     rmdir /s /q "%DL_DIR%"
     rmdir /s /q "%FILE_DIR%"
     exit
@@ -188,65 +171,8 @@ set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
-@rem AviUtlディレクトリ名
-set AVIUTL_DIR_NAME=AviUtl
-@rem DLファイルの一時ディレクトリ名
-set DL_DIR_NAME=DL_TEMP
-@rem 出力ファイル一時ディレクトリ名
-set FILE_DIR_NAME=FILE_TEMP
-@rem pluginsディレクトリ名
-set PLUGINS_DIR_NAME=plugins
-@rem figureディレクトリ名
-set FIGURE_DIR_NAME=figure
-@rem scriptディレクトリ名
-set SCRIPT_DIR_NAME=script
-@rem 7zディレクトリ名
-set SVZIP_DIR_NAME=7z
-
-@rem AviUtlディレクトリ作成
-set AVIUTL_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%
-mkdir %AVIUTL_DIR_MK%
-@rem ファイルの一時ディレクトリ作成
-set DL_TEMP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%DL_DIR_NAME%
-mkdir %DL_TEMP_DIR_MK%
-@rem 出力ファイルディレクトリ作成
-set FILE_TEMP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%FILE_DIR_NAME%
-mkdir %FILE_TEMP_DIR_MK%
-@rem pluginsディレクトリ作成
-set PLUGINS_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%PLUGINS_DIR_NAME%
-mkdir %PLUGINS_DIR_MK%
-@rem figureディレクトリ作成
-set FIGURE_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%PLUGINS_DIR_NAME%\%FIGURE_DIR_NAME%
-mkdir %FIGURE_DIR_MK%
-@rem scriptディレクトリ作成
-set SCRIPT_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%PLUGINS_DIR_NAME%\%SCRIPT_DIR_NAME%
-mkdir %SCRIPT_DIR_MK%
-@rem 7zディレクトリ作成
-set SVZIP_DIR_MK=%INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\%SVZIP_DIR_NAME%
-mkdir %SVZIP_DIR_MK%
-
-@rem AviUtlディレクトリ
-set AVIUTL_DIR=%INSTALL_DIR%\AviUtl
-@rem ファイルの一時ディレクトリ
-set DL_DIR=%AVIUTL_DIR%\DL_TEMP
-@rem 出力ファイルディレクトリ
-set FILE_DIR=%AVIUTL_DIR%\FILE_TEMP
-@rem pluginsディレクトリ
-set PLUGINS_DIR=%AVIUTL_DIR%\plugins
-@rem figureディレクトリ
-set FIGURE_DIR=%PLUGINS_DIR%\figure
-@rem scriptディレクトリ
-set SCRIPT_DIR=%PLUGINS_DIR%\script
-@rem 7zの展開ディレクトリ
-set SVZIP_DIR=%AVIUTL_DIR%\7z
-
-
-@rem 7zの環境構築
-call :SZ_SETUP
-
-@rem HtoXの環境構築
-call :HTOX_SETUP
-
+@rem 作業環境構築
+call :WORKING_ENV_SETUP
 
 @rem 基本環境構築
 @rem 基本ファイルのDL
@@ -264,6 +190,11 @@ echo L-SMASHのダウンロード完了
 @rem AviUtlの展開
 %SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
 
+set AVIUTL_DATE=
+for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
+    set AVIUTL_DATE=%%~ti
+)
+
 @rem LargeAddressAwareを有効化
 echo AviUtlのLargeAddressAwareを有効にします(これには1分ほどかかります)
 echo 0%%完了
@@ -274,6 +205,7 @@ echo 50%%完了
 powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -last 487161 | Set-Content -en byte \"%AVIUTL_DIR%\A-2.bin\""
 echo 75%%完了
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.exe"
+powershell -Command "Set-ItemProperty \"%AVIUTL_DIR%\aviutl.exe\" -name LastWriteTime -value \"%AVIUTL_DATE%""
 del "%AVIUTL_DIR%"\*.bin
 echo 100%%完了
 
@@ -379,6 +311,52 @@ call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
 exit
 
 @rem 以下、サブルーチン
+
+@rem Install/Update環境構築
+@rem 7zとHtoX
+:WORKING_ENV_SETUP
+    if %SEL_UPDATE% equ 0 (
+        @rem インストールを選択
+        @rem ディレクトリの作成
+        set AVIUTL_DIR_MK=%INSTALL_DIR_PRE%\AviUtl
+        set PLUGINS_DIR_MK=!AVIUTL_DIR_MK!\plugins
+        set FIGURE_DIR_MK=!PLUGINS_DIR_MK!\figure
+        set SCRIPT_DIR_MK=!PLUGINS_DIR_MK!\script
+        set DL_TEMP_DIR_MK=!AVIUTL_DIR_MK!\DL_TEMP
+        set SVZIP_DIR_MK=!DL_TEMP_DIR_MK!\7z
+        set FILE_TEMP_DIR_MK=!AVIUTL_DIR_MK!\FILE_TEMP
+        @rem ディレクトリの作成(すでに存在する場合はそのエラーを出力しないように)
+        mkdir !AVIUTL_DIR_MK! !PLUGINS_DIR_MK! !SCRIPT_DIR_MK! !FIGURE_DIR_MK! > nul 2>&1
+        mkdir !DL_TEMP_DIR_MK! !SVZIP_DIR_MK! !FILE_TEMP_DIR_MK! > nul 2>&1
+
+        @rem 作業ディレクトリの設定
+        set AVIUTL_DIR=%INSTALL_DIR%\AviUtl
+        set PLUGINS_DIR=!AVIUTL_DIR!\plugins
+        set FIGURE_DIR=!PLUGINS_DIR!\figure
+        set SCRIPT_DIR=!PLUGINS_DIR!\script
+        set DL_DIR=!AVIUTL_DIR!\DL_TEMP
+        set SVZIP_DIR=!DL_DIR!\7z
+        set FILE_DIR=!AVIUTL_DIR!\FILE_TEMP
+    ) else (
+        @rem アップデートを選択
+        @rem AviUtlディレクトリ
+        set AVIUTL_DIR=%INSTALL_DIR%
+        @rem pluginsディレクトリ
+        set PLUGINS_DIR=!AVIUTL_DIR!\plugins
+        @rem scriptディレクトリ
+        set SCRIPT_DIR=!PLUGINS_DIR!\script
+
+        @rem DLファイルの一時ディレクトリ
+        set DL_DIR=!AVIUTL_DIR!\DL_TEMP
+        @rem 出力ファイルの一時ディレクトリ
+        set FILE_DIR=!AVIUTL_DIR!\FILE_TEMP
+        @rem 7zの展開ディレクトリ
+        set SVZIP_DIR=!AVIUTL_DIR!\DL_TEMP\7z
+        mkdir "!DL_DIR!" "!FILE_DIR!" "!SVZIP_DIR!"
+    )
+    call :SZ_SETUP
+    call :HTOX_SETUP
+exit /b
 
 @rem ファイルから完全一致の行を検索する
 @rem 引数: %1-ファイル %2-検索する文字列
@@ -500,55 +478,32 @@ exit /b
 
 @rem 英語の月表記から数字に変換
 @rem 引数: %1-英語表記の月
-@rem 戻り値 1～12:変換された月 -1:該当なし -2:引数エラー
+@rem 戻り値 1～12:変換された月 -1:引数なし -2:引数エラー
 :CONV_MONTH
     if "%~1" equ "" exit /b -1
-    if %1=="January"   goto :M_JAN
-    if %1=="JANUARY"   goto :M_JAN
-    if %1=="Jan"       goto :M_JAN
-    if %1=="JAN"       goto :M_JAN
-    if %1=="February"  goto :M_FEB
-    if %1=="FEBRUARY"  goto :M_FEB
-    if %1=="Feb"       goto :M_FEB
-    if %1=="FEB"       goto :M_FEB
-    if %1=="March"     goto :M_MAR
-    if %1=="MARCH"     goto :M_MAR
-    if %1=="Mar"       goto :M_MAR
-    if %1=="MAR"       goto :M_MAR
-    if %1=="April"     goto :M_APR
-    if %1=="APRIL"     goto :M_APR
-    if %1=="Apr"       goto :M_APR
-    if %1=="APR"       goto :M_APR
-    if %1=="May"       goto :M_MAY
-    if %1=="MAY"       goto :M_MAY
-    if %1=="June"      goto :M_JUN
-    if %1=="JUNE"      goto :M_JUN
-    if %1=="Jun"       goto :M_JUN
-    if %1=="JUN"       goto :M_JUN
-    if %1=="July"      goto :M_JUL
-    if %1=="JULY"      goto :M_JUL
-    if %1=="Jul"       goto :M_JUL
-    if %1=="JUL"       goto :M_JUL
-    if %1=="August"    goto :M_AUG
-    if %1=="AUGUST"    goto :M_AUG
-    if %1=="Aug"       goto :M_AUG
-    if %1=="AUG"       goto :M_AUG
-    if %1=="September" goto :M_SEP
-    if %1=="SEPTEMBER" goto :M_SEP
-    if %1=="Sep"       goto :M_SEP
-    if %1=="SEP"       goto :M_SEP
-    if %1=="October"   goto :M_OCT
-    if %1=="OCTOBER"   goto :M_OCT
-    if %1=="Oct"       goto :M_OCT
-    if %1=="OCT"       goto :M_OCT
-    if %1=="November"  goto :M_NOV
-    if %1=="NOVEMBER"  goto :M_NOV
-    if %1=="Nov"       goto :M_NOV
-    if %1=="NOV"       goto :M_NOV
-    if %1=="December"  goto :M_DEC
-    if %1=="DECEMBER"  goto :M_DEC
-    if %1=="Dec"       goto :M_DEC
-    if %1=="DEC"       goto :M_DEC
+    if /i %1=="January"   goto :M_JAN
+    if /i %1=="Jan"       goto :M_JAN
+    if /i %1=="February"  goto :M_FEB
+    if /i %1=="Feb"       goto :M_FEB
+    if /i %1=="March"     goto :M_MAR
+    if /i %1=="Mar"       goto :M_MAR
+    if /i %1=="April"     goto :M_APR
+    if /i %1=="Apr"       goto :M_APR
+    if /i %1=="May"       goto :M_MAY
+    if /i %1=="June"      goto :M_JUN
+    if /i %1=="Jun"       goto :M_JUN
+    if /i %1=="July"      goto :M_JUL
+    if /i %1=="Jul"       goto :M_JUL
+    if /i %1=="August"    goto :M_AUG
+    if /i %1=="Aug"       goto :M_AUG
+    if /i %1=="September" goto :M_SEP
+    if /i %1=="Sep"       goto :M_SEP
+    if /i %1=="October"   goto :M_OCT
+    if /i %1=="Oct"       goto :M_OCT
+    if /i %1=="November"  goto :M_NOV
+    if /i %1=="Nov"       goto :M_NOV
+    if /i %1=="December"  goto :M_DEC
+    if /i %1=="Dec"       goto :M_DEC
     goto :M_OTHER
 
     :M_JAN
@@ -689,7 +644,7 @@ exit /b
     @rem PSDToolKitを展開
     %SZEXE% x "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 
-    mkdir %INSTALL_DIR_PRE%\%AVIUTL_DIR_NAME%\PSDToolKitの説明ファイル群
+    mkdir %INSTALL_DIR_PRE%\AviUtl\PSDToolKitの説明ファイル群
     @move "%PLUGINS_DIR%\PSDToolKitDocs" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.txt" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.html" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
@@ -698,6 +653,11 @@ exit /b
 exit /b
 
 @rem リリースノート
+@rem 2019/9/19(v3.2.0)
+@rem     LargeAddressAwareを有効化後のaviutl.exeの更新日をオリジナルと同じにするように変更
+@rem     作業環境構築ルーチン追加
+@rem     英語表記の月の条件分岐を修正
+@rem     文章の修正
 @rem 2019/7/4 (v3.1.0)
 @rem     GitHubのリリース日の取得を修正
 @rem     エラー処理を追加
