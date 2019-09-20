@@ -695,7 +695,7 @@ exit /b 0
     @rem PSDToolKitを展開
     %SZEXE% x "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 
-    mkdir %INSTALL_DIR_PRE%\AviUtl\PSDToolKitの説明ファイル群
+    mkdir "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\PSDToolKitDocs" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.txt" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.html" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
