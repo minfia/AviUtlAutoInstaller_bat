@@ -61,12 +61,10 @@ if %ERRORLEVEL% equ 0 (
 
 
 :UPDATE
-@rem アップデート確認
-set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
-if /i not %UPDATE_SUCCESS%==Y (
-    call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
-    exit
-)
+@rem アップデート一覧格納配列
+set UPDATE_LIST=
+@rem UPDATE_LISTの要素数
+set UPDATE_LIST_CNT=-1
 
 @rem ディレクトリの設定
 @rem カレントディレクトリ
@@ -81,18 +79,28 @@ call :WORKING_ENV_SETUP
 @rem PSDToolkitのアップデート
 call :PSDTOOLKIT_GET_LATEST_VER
 call :PSDTOOLKIT_UPDATE_CHECK
-set PSDTOOLKIT_UPDATE=%ERRORLEVEL%
+call :UPDATE_NAME_REGIST %ERRORLEVEL% "PSDToolkit"
 
-
-if %PSDTOOLKIT_UPDATE% equ 1 (
-    echo 最新バージョン %PSDTOOLKIT_VER% があります
-    @rem PSDToolkit
-   rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
-    call :PSDTOOLKIT_INSTALL
+if %UPDATE_LIST_CNT% lss 0 (
+    call :SHOW_MSG "アップデートはありません" vbInformation "情報" "modal"
+    rmdir /s /q "%DL_DIR%"
+    rmdir /s /q "%FILE_DIR%"
+    exit
 ) else (
-    echo PSDToolkitは最新バージョンです
+    echo アップデート対象は以下になります
+    for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
+        echo ・!UPDATE_LIST[%%i]!
+    )
+    @rem アップデート確認
+    set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
+    if /i not !UPDATE_SUCCESS!==Y (
+        call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
+        exit
+    )
 )
 
+rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
+call :PSDTOOLKIT_INSTALL
 call :X264GUIEX_INSTALL
 
 rmdir /s /q "%DL_DIR%"
@@ -533,6 +541,18 @@ exit /b
     )
     del %TEMP%\dt.txt
     set DT=!Y!/!MO!/!D! !H!:!MI!
+exit /b 0
+
+@rem アップデート配列に対象名を登録
+@rem 引数: %1-アップデートのチェック結果 %2-登録する文字列
+@rem 戻り値 0:成功 -1:引数エラー
+:UPDATE_NAME_REGIST
+    if "%~1" equ "" exit /b -1
+    if "%~2" equ "" exit /b -1
+    if %1 equ 1 (
+        set /a UPDATE_LIST_CNT=UPDATE_LIST_CNT+1
+        set UPDATE_LIST[!UPDATE_LIST_CNT!]=%~2
+    )
 exit /b 0
 
 @rem 7zの環境構築
