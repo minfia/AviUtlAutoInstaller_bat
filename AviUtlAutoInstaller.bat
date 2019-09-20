@@ -54,13 +54,13 @@ set SEL_UPDATE=0
 where aviutl.exe > nul
 if %ERRORLEVEL% equ 0 (
     set SEL_UPDATE=1
-    call :PSDTOOLKIT_UPDATE
+    call :UPDATE
 ) else (
     goto :INSATALL
 )
 
 
-:PSDTOOLKIT_UPDATE
+:UPDATE
 @rem アップデート確認
 set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
 if /i not %UPDATE_SUCCESS%==Y (
@@ -79,59 +79,12 @@ set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 call :WORKING_ENV_SETUP
 
 @rem PSDToolkitのアップデート
-call :PSDTOOLKIT_PRE_ROUTINE
-@rem psdtoolkitの最新tagの日付取得
-findstr /C:"oov released this " "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.txt"
-@rem 1行目を代入
-set /p LINE=<"%FILE_DIR%\date.txt"
-@rem 年月日のみを抽出
-call :STRSTR "%LINE%" "this "
-if %ERRORLEVEL% equ -3 (
-    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容をバッチファイル製作者に報告してください" vbCritical "エラー" "modal"
-    rmdir /s /q "%DL_DIR%"
-    rmdir /s /q "%FILE_DIR%"
-    exit
-)
-set FRONT_LEN=%ERRORLEVEL%
-call :STRSTR "%LINE%" "・"
-if %ERRORLEVEL% equ -3 (
-    call :STRLEN "%LINE%" 
-)
-set LAST_LEN=%ERRORLEVEL%
-set /a FRONT_LEN+=5
-set /a DIFF=%LAST_LEN%-%FRONT_LEN%
-set LINE=!LINE:~%FRONT_LEN%,%DIFF%!
-echo %LINE% > "%FILE_DIR%\date.txt"
-@rem 年月日を変数毎に分割
-set YEAR=
-set MONTH=
-set DAY=
-for /f "usebackq tokens=1,2,3" %%i in ("%FILE_DIR%\date.txt") do (
-    set MONTH=%%i
-    set DAY=%%j
-    set YEAR=%%k
-)
+call :PSDTOOLKIT_GET_LATEST_VER
+call :PSDTOOLKIT_UPDATE_CHECK
+set PSDTOOLKIT_UPDATE=%ERRORLEVEL%
 
-@rem 文字列の月を数字に変換
-call :CONV_MONTH "%MONTH%"
-set MONTH=%ERRORLEVEL%
-@rem GitHubのリリース日(yyyy/M/d)を代入
-set GITHUB_PSD_DATE=%YEAR%/%MONTH%/%DAY:,=%
-@rem PSDToolkitの更新日時を取得
-set PSDFILE_DATETIME_PRE=
-for %%i in (plugins\PSDToolKit.auf) do (
-    set PSDFILE_DATETIME_PRE=%%~ti
-)
 
-call :CONV_UTC "%PSDFILE_DATETIME_PRE%"
-set PSDFILE_DATETIME=!DT!
-echo !PSDFILE_DATETIME! > "%FILE_DIR%\psddatetime.txt"
-
-set PSDFILE_DATE=
-for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\psddatetime.txt") do (
-    set PSDFILE_DATE=%%i
-)
-if %PSDFILE_DATE% lss %GITHUB_PSD_DATE% (
+if %PSDTOOLKIT_UPDATE% equ 1 (
     echo 最新バージョン %PSDTOOLKIT_VER% があります
     @rem PSDToolkit
    rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
@@ -255,7 +208,7 @@ call :X264GUIEX_INSTALL
 @rem 劇場向けファイルのDL
 @rem PSDToolkit
 set PSDTOOLKIT_VER=
-call :PSDTOOLKIT_PRE_ROUTINE
+call :PSDTOOLKIT_GET_LATEST_VER
 call :PSDTOOLKIT_INSTALL
 
 @rem 風揺れ
@@ -620,23 +573,101 @@ exit /b
 
 exit /b
 
-@rem PSDToolkitインストールの前処理
-:PSDTOOLKIT_PRE_ROUTINE
-    @rem PSDToolkitのreleaseページ
-    set PSDTOOLKIT_REPO=psd_github.html
-    @rem releaseのhtmlファイルをDL
-    call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases" "%DL_DIR%\%PSDTOOLKIT_REPO%"
+@rem GitHubの最新リリースを取得
+@rem 引数: %1-URL %2-最新リリーステキスト出力先
+@rem 戻り値 0:成功 -1:引数エラー
+:GITHUB_GET_LATEST_RELEASE_VER
+    if "%~1" equ "" exit /b -1
+    call :FILE_DOWNLOAD %1 "%DL_DIR%\github_release.html"
     @rem htmlを解析
-    %HTOX% /I8 "%DL_DIR%\%PSDTOOLKIT_REPO%" > "%FILE_DIR%\htmlparse.txt"
+    %HTOX% /I8 "%DL_DIR%\github_release.html" > "%FILE_DIR%\htmlparse.txt"
     @rem psdtoolkitの最新バージョン取得
     findstr /C:"*  v" "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\tag.txt"
     set /p LINE=<"%FILE_DIR%\tag.txt"
     echo %LINE% > "%FILE_DIR%\tag.txt"
+exit /b 0
+
+@rem GitHubの最新リリースの日付を取得
+@rem 引数: %1-リリース日取得の検索文字列
+@rem 結果はGITHUB_DATEに格納する
+@rem 戻り値 0:成功 -1:引数エラー
+:GITHUB_GET_LATEST_RELEASE_DATE
+    if "%~1" equ "" exit /b -1
+    findstr /C:%1 "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.txt"
+    @rem 1行目を代入
+    set /p LINE=<"%FILE_DIR%\date.txt"
+    @rem 年月日のみを抽出
+    call :STRSTR "%LINE%" "this "
+    if %ERRORLEVEL% equ -3 (
+        call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容をバッチファイル製作者に報告してください" vbCritical "エラー" "modal"
+        rmdir /s /q "%DL_DIR%"
+        rmdir /s /q "%FILE_DIR%"
+        exit
+    )
+    set FRONT_LEN=%ERRORLEVEL%
+    call :STRSTR "%LINE%" "・"
+    if %ERRORLEVEL% equ -3 (
+        call :STRLEN "%LINE%" 
+    )
+    set LAST_LEN=%ERRORLEVEL%
+    set /a FRONT_LEN+=5
+    set /a DIFF=%LAST_LEN%-%FRONT_LEN%
+    set LINE=!LINE:~%FRONT_LEN%,%DIFF%!
+    echo %LINE% > "%FILE_DIR%\date.txt"
+    @rem 年月日を変数毎に分割
+    set YEAR=
+    set MONTH=
+    set DAY=
+    for /f "usebackq tokens=1,2,3" %%i in ("%FILE_DIR%\date.txt") do (
+        set MONTH=%%i
+        set DAY=%%j
+        set YEAR=%%k
+    )
+    @rem 文字列の月を数字に変換
+    call :CONV_MONTH "%MONTH%"
+    set MONTH=%ERRORLEVEL%
+    @rem GitHubのリリース日(yyyy/M/d)を代入
+    set GITHUB_DATE=%YEAR%/%MONTH%/%DAY:,=%
+exit /b 0
+
+@rem PSDToolkitの更新日時を取得
+:PSDTOOLKIT_GET_DATE
+    set PSDFILE_DATETIME_PRE=
+    for %%i in (plugins\PSDToolKit.auf) do (
+        set PSDFILE_DATETIME_PRE=%%~ti
+    )
+    call :CONV_UTC "%PSDFILE_DATETIME_PRE%"
+    set PSDFILE_DATETIME=!DT!
+    echo !PSDFILE_DATETIME! > "%FILE_DIR%\psddatetime.txt"
+
+    set PSDFILE_DATE=
+    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\psddatetime.txt") do (
+        set PSDFILE_DATE=%%i
+    )
+exit /b
+
+@rem PSDToolkit最新バージョン取得
+:PSDTOOLKIT_GET_LATEST_VER
+    @rem PSDToolkitの最新リリースを取得
+    call :GITHUB_GET_LATEST_RELEASE_VER "https://github.com/oov/aviutl_psdtoolkit/releases"
     set PSDTOOLKIT_VER=
     for /f "usebackq tokens=2" %%i in ("%FILE_DIR%\tag.txt") do (
         set PSDTOOLKIT_VER=%%i
     )
 exit /b
+
+@rem PSDToolkitアップデートチェック
+@rem 戻り値 0:アップデートなし 1:アップデートあり
+:PSDTOOLKIT_UPDATE_CHECK
+    @rem psdtoolkitの最新tagの日付取得
+    call :GITHUB_GET_LATEST_RELEASE_DATE "oov released this "
+    set GITHUB_PSD_DATE=%GITHUB_DATE%
+    @rem PSDToolkitの更新日時を取得
+    call :PSDTOOLKIT_GET_DATE
+    if !PSDFILE_DATE! lss !GITHUB_PSD_DATE! (
+        exit /b 1
+    )
+exit /b 0
 
 @rem PSDToolkitのインストール
 :PSDTOOLKIT_INSTALL
