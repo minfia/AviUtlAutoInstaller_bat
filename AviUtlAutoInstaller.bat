@@ -63,6 +63,8 @@ if %ERRORLEVEL% equ 0 (
 :UPDATE
 @rem アップデート一覧格納配列
 set UPDATE_LIST=
+@rem アップデート実行ルーチン一覧格納配列
+set UPDATE_ROUTINE_LIST=
 @rem UPDATE_LISTの要素数
 set UPDATE_LIST_CNT=-1
 
@@ -76,10 +78,14 @@ set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 @rem 作業環境構築
 call :WORKING_ENV_SETUP
 
+@rem AviUtlのアップデートチェック
+call :AVIUTL_UPDATE_CHECK
+call :UPDATE_NAME_REGIST %ERRORLEVEL% "AviUtl" ":AVIUTL_INSTALL"
+
 @rem PSDToolkitのアップデート
 call :PSDTOOLKIT_GET_LATEST_VER
 call :PSDTOOLKIT_UPDATE_CHECK
-call :UPDATE_NAME_REGIST %ERRORLEVEL% "PSDToolkit"
+call :UPDATE_NAME_REGIST %ERRORLEVEL% "PSDToolkit" ":PSDTOOLKIT_INSTALL"
 
 if %UPDATE_LIST_CNT% lss 0 (
     call :CLEANUP
@@ -99,8 +105,9 @@ if %UPDATE_LIST_CNT% lss 0 (
     )
 )
 
-rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
-call :PSDTOOLKIT_INSTALL
+for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
+    call !UPDATE_ROUTINE_LIST[%%i]!
+)
 call :X264GUIEX_INSTALL
 
 call :CLEANUP
@@ -125,7 +132,7 @@ set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
 set INSTALL_DIR=%INSTALL_DIR_PRE%
 set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
-set AVIUTL_ZIP=aviutl100.zip
+set AVIUTL_VER=aviutl100
 set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
@@ -133,40 +140,8 @@ set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 @rem 作業環境構築
 call :WORKING_ENV_SETUP
 
-@rem 基本環境構築
-@rem 基本ファイルのDL
-echo AviUtlのダウンロード...
-call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP%" "%DL_DIR%\%AVIUTL_ZIP%"
-echo AviUtlのダウンロード完了
-echo 拡張編集のダウンロード...
-call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%"  "%DL_DIR%\%EXEDIT_ZIP%"
-echo 拡張編集のダウンロード完了
-echo L-SMASHのダウンロード...
-call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
-echo L-SMASHのダウンロード完了
-
-
-@rem AviUtlの展開
-%SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
-
-set AVIUTL_DATE=
-for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
-    set AVIUTL_DATE=%%~ti
-)
-
-@rem LargeAddressAwareを有効化
-echo AviUtlのLargeAddressAwareを有効にします(これには1分ほどかかります)
-echo 0%%完了
-powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -first 262 | Set-Content -en byte \"%AVIUTL_DIR%\A-1.bin\""
-echo 25%%完了
-powershell -Command "[System.Text.Encoding]::ASCII.GetBytes(\"/\") | Set-Content -en byte \"%AVIUTL_DIR%\A-12.bin\""
-echo 50%%完了
-powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -last 487161 | Set-Content -en byte \"%AVIUTL_DIR%\A-2.bin\""
-echo 75%%完了
-copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.exe"
-powershell -Command "Set-ItemProperty \"%AVIUTL_DIR%\aviutl.exe\" -name LastWriteTime -value \"%AVIUTL_DATE%""
-del "%AVIUTL_DIR%"\*.bin
-echo 100%%完了
+echo AviUtlのインストール
+call :AVIUTL_INSTALL
 
 @rem AviUtlの設定ファイルを生成する
 call :EXEC_AVIUTL
@@ -176,7 +151,6 @@ timeout /t 3 /nobreak > nul
     if /i not !INI_FILE!==aviutl.ini (
         goto SEARCH_INI
     )
-
 
 @rem aviutlの設定ファイルを編集
 @rem 変更内容
@@ -202,6 +176,12 @@ powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
 del "%AVIUTL_DIR%"\*.bin
 
+echo 拡張編集のダウンロード...
+call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%"  "%DL_DIR%\%EXEDIT_ZIP%"
+echo 拡張編集のダウンロード完了
+echo L-SMASHのダウンロード...
+call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
+echo L-SMASHのダウンロード完了
 
 @rem プラグインなどを展開
 %SZEXE% x "%DL_DIR%\%EXEDIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
@@ -539,14 +519,16 @@ exit /b
 exit /b 0
 
 @rem アップデート配列に対象名を登録
-@rem 引数: %1-アップデートのチェック結果 %2-登録する文字列
+@rem 引数: %1-アップデートのチェック結果 %2-登録する文字列 %3-登録するサブルーチンのラベル
 @rem 戻り値 0:成功 -1:引数エラー
 :UPDATE_NAME_REGIST
     if "%~1" equ "" exit /b -1
     if "%~2" equ "" exit /b -1
+    if "%~3" equ "" exit /b -1
     if %1 equ 1 (
         set /a UPDATE_LIST_CNT=UPDATE_LIST_CNT+1
         set UPDATE_LIST[!UPDATE_LIST_CNT!]=%~2
+        set UPDATE_ROUTINE_LIST[!UPDATE_LIST_CNT!]=%~3
     )
 exit /b 0
 
@@ -695,12 +677,71 @@ exit /b 0
     @rem PSDToolKitを展開
     %SZEXE% x "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 
+    rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     mkdir "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\PSDToolKitDocs" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.txt" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.html" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%AVIUTL_DIR%\PSDToolKitの説明ファイル群\exedit.txt" "%PLUGINS_DIR%"
     @move "%AVIUTL_DIR%\PSDToolKitの説明ファイル群\lua.txt" "%PLUGINS_DIR%"
+exit /b
+
+@rem AviUtl最新バージョンと更新日を取得
+@rem AVIUTL_VERとAVIUTL_DATEに格納
+:AVIUTL_GET_LATEST_VER_DATE
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
+    %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
+    findstr /I /R /C:"\<aviutl[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
+    set /p LINE=<"%FILE_DIR%\list.txt"
+    echo %LINE% > "%FILE_DIR%\latest.txt"
+    for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
+        set AVIUTL_VER=%%~ni
+        set AVIUTL_DATE=%%j
+    )
+exit /b
+
+@rem AviUtlのアップデートチェック
+@rem 戻り値 0:アップデートなし 1:アップデートあり
+:AVIUTL_UPDATE_CHECK
+    call :AVIUTL_GET_LATEST_VER_DATE
+    for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
+        set AVIUTL_EXE_DATE_PRE=%%~ti
+    )
+    echo %AVIUTL_EXE_DATE_PRE% > "%FILE_DIR%\aviutldatetime.txt"
+    set AVIUTL_EXE_DATE=
+    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\aviutldatetime.txt") do (
+        set AVIUTL_EXE_DATE=%%i
+    )
+    if %AVIUTL_EXE_DATE% lss %AVIUTL_DATE% (
+        exit /b 1
+    )
+exit /b 0
+
+@rem AviUtlインストール
+:AVIUTL_INSTALL
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_VER%.zip" "%DL_DIR%\%AVIUTL_VER%.zip"
+    @rem AviUtlの展開
+    %SZEXE% x "%DL_DIR%\%AVIUTL_VER%.zip" -aoa -o"%AVIUTL_DIR%"
+    set AVIUTL_DATE=
+    for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
+        set AVIUTL_DATE=%%~ti
+    )
+
+    if "%AVIUTL_VER%"=="aviutl100" (
+        @rem LargeAddressAwareを有効化
+        echo AviUtlのLargeAddressAwareを有効にします（これには1分ほどかかります）
+        echo 0%%完了
+        powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -first 262 | Set-Content -en byte \"%AVIUTL_DIR%\A-1.bin\""
+        echo 25%%完了
+        powershell -Command "[System.Text.Encoding]::ASCII.GetBytes(\"/\") | Set-Content -en byte \"%AVIUTL_DIR%\A-12.bin\""
+        echo 50%%完了
+        powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -last 487161 | Set-Content -en byte \"%AVIUTL_DIR%\A-2.bin\""
+        echo 75%%完了
+        copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.exe"
+        powershell -Command "Set-ItemProperty \"%AVIUTL_DIR%\aviutl.exe\" -name LastWriteTime -value \"%AVIUTL_DATE%""
+        del "%AVIUTL_DIR%"\*.bin
+        echo 100%%完了
+    )
 exit /b
 
 @rem リリースノート
