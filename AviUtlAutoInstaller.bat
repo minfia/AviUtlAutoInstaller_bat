@@ -82,9 +82,8 @@ call :PSDTOOLKIT_UPDATE_CHECK
 call :UPDATE_NAME_REGIST %ERRORLEVEL% "PSDToolkit"
 
 if %UPDATE_LIST_CNT% lss 0 (
+    call :CLEANUP
     call :SHOW_MSG "アップデートはありません" vbInformation "情報" "modal"
-    rmdir /s /q "%DL_DIR%"
-    rmdir /s /q "%FILE_DIR%"
     exit
 ) else (
     echo アップデート対象は以下になります
@@ -94,6 +93,7 @@ if %UPDATE_LIST_CNT% lss 0 (
     @rem アップデート確認
     set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
     if /i not !UPDATE_SUCCESS!==Y (
+        call :CLEANUP
         call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
         exit
     )
@@ -103,9 +103,7 @@ rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
 call :PSDTOOLKIT_INSTALL
 call :X264GUIEX_INSTALL
 
-rmdir /s /q "%DL_DIR%"
-rmdir /s /q "%FILE_DIR%"
-
+call :CLEANUP
 call :SHOW_MSG "アップデートが完了しました" vbInformation "情報" "modal"
 
 exit
@@ -263,10 +261,7 @@ call :EXEC_AVIUTL
 
 
 @rem 後始末
-rmdir /s /q "%DL_DIR%"
-rmdir /s /q "%FILE_DIR%"
-rmdir /s /q "%SVZIP_DIR%"
-
+call :CLEANUP
 call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
 
 exit
@@ -555,6 +550,12 @@ exit /b 0
     )
 exit /b 0
 
+@rem TEMPフォルダの後始末
+:CLEANUP
+    rmdir /s /q "%DL_DIR%"
+    rmdir /s /q "%FILE_DIR%"
+exit /b
+
 @rem 7zの環境構築
 :SZ_SETUP
     echo 7zのダウンロード...
@@ -620,8 +621,7 @@ exit /b 0
     call :STRSTR "%LINE%" "this "
     if %ERRORLEVEL% equ -3 (
         call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容をバッチファイル製作者に報告してください" vbCritical "エラー" "modal"
-        rmdir /s /q "%DL_DIR%"
-        rmdir /s /q "%FILE_DIR%"
+        call :CLEANUP
         exit
     )
     set FRONT_LEN=%ERRORLEVEL%
