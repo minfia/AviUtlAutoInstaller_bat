@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=3.2.0
+set SCRIPT_VER=4.0.0
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -49,24 +49,47 @@ set DL_RETRY=3
 set X264GUIEX_VER=2.59
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 
+@rem バッチファイル実行時の処理選択
+@rem 0:インストール 1:アップデート
 set SEL_UPDATE=0
+@rem テスト版AviUtlインストールフラグ
+set INSTALL_AVIUTL_RC_FLAG=0
 
-where aviutl.exe > nul
+@rem コマンドラインオプション処理
+:OPTION
+    if not "%1"=="" (
+        if "%1"=="--rc" (
+            set INSTALL_AVIUTL_RC_FLAG=1
+        )else if "%1"=="--help" (
+            goto :HELP
+        ) else if "%1"=="--version" (
+            echo version: %SCRIPT_VER%
+            exit /b
+        ) else (
+            goto :HELP
+        )
+        shift /1
+        goto :OPTION
+    )
+
+
+where aviutl.exe > nul 2>&1
 if %ERRORLEVEL% equ 0 (
     set SEL_UPDATE=1
-    call :PSDTOOLKIT_UPDATE
+    goto :UPDATE
 ) else (
     goto :INSATALL
 )
 
 
-:PSDTOOLKIT_UPDATE
-@rem アップデート確認
-set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
-if /i not %UPDATE_SUCCESS%==Y (
-    call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
-    exit
-)
+@rem アップデート処理
+:UPDATE
+@rem アップデート一覧格納配列
+set UPDATE_LIST=
+@rem アップデート実行ルーチン一覧格納配列
+set UPDATE_ROUTINE_LIST=
+@rem UPDATE_LISTの要素数
+set UPDATE_LIST_CNT=-1
 
 @rem ディレクトリの設定
 @rem カレントディレクトリ
@@ -78,78 +101,49 @@ set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 @rem 作業環境構築
 call :WORKING_ENV_SETUP
 
+@rem AviUtlのアップデートチェック
+call :AVIUTL_UPDATE_CHECK
+call :UPDATE_NAME_REGIST %ERRORLEVEL% "AviUtl" ":AVIUTL_INSTALL"
+
+@rem 拡張編集のアップデートチェック
+call :EXEDIT_UPDATE_CHECK
+call :UPDATE_NAME_REGIST %ERRORLEVEL% "拡張編集" ":EXEDIT_INSTALL"
+
 @rem PSDToolkitのアップデート
-call :PSDTOOLKIT_PRE_ROUTINE
-@rem psdtoolkitの最新tagの日付取得
-findstr /C:"oov released this " "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.txt"
-@rem 1行目を代入
-set /p LINE=<"%FILE_DIR%\date.txt"
-@rem 年月日のみを抽出
-call :STRSTR "%LINE%" "this "
-if %ERRORLEVEL% equ -3 (
-    call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容をバッチファイル製作者に報告してください" vbCritical "エラー" "modal"
-    rmdir /s /q "%DL_DIR%"
-    rmdir /s /q "%FILE_DIR%"
+call :PSDTOOLKIT_GET_LATEST_VER
+call :PSDTOOLKIT_UPDATE_CHECK
+call :UPDATE_NAME_REGIST %ERRORLEVEL% "PSDToolkit" ":PSDTOOLKIT_INSTALL"
+
+if %UPDATE_LIST_CNT% lss 0 (
+    call :CLEANUP
+    call :SHOW_MSG "アップデートはありません" vbInformation "情報" "modal"
     exit
-)
-set FRONT_LEN=%ERRORLEVEL%
-call :STRSTR "%LINE%" "・"
-if %ERRORLEVEL% equ -3 (
-    call :STRLEN "%LINE%" 
-)
-set LAST_LEN=%ERRORLEVEL%
-set /a FRONT_LEN+=5
-set /a DIFF=%LAST_LEN%-%FRONT_LEN%
-set LINE=!LINE:~%FRONT_LEN%,%DIFF%!
-echo %LINE% > "%FILE_DIR%\date.txt"
-@rem 年月日を変数毎に分割
-set YEAR=
-set MONTH=
-set DAY=
-for /f "usebackq tokens=1,2,3" %%i in ("%FILE_DIR%\date.txt") do (
-    set MONTH=%%i
-    set DAY=%%j
-    set YEAR=%%k
-)
-
-@rem 文字列の月を数字に変換
-call :CONV_MONTH "%MONTH%"
-set MONTH=%ERRORLEVEL%
-@rem GitHubのリリース日(yyyy/M/d)を代入
-set GITHUB_PSD_DATE=%YEAR%/%MONTH%/%DAY:,=%
-@rem PSDToolkitの更新日時を取得
-set PSDFILE_DATETIME_PRE=
-for %%i in (plugins\PSDToolKit.auf) do (
-    set PSDFILE_DATETIME_PRE=%%~ti
-)
-
-call :CONV_UTC "%PSDFILE_DATETIME_PRE%"
-set PSDFILE_DATETIME=!DT!
-echo !PSDFILE_DATETIME! > "%FILE_DIR%\psddatetime.txt"
-
-set PSDFILE_DATE=
-for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\psddatetime.txt") do (
-    set PSDFILE_DATE=%%i
-)
-if %PSDFILE_DATE% lss %GITHUB_PSD_DATE% (
-    echo 最新バージョン %PSDTOOLKIT_VER% があります
-    @rem PSDToolkit
-   rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
-    call :PSDTOOLKIT_INSTALL
 ) else (
-    echo PSDToolkitは最新バージョンです
+    echo アップデート対象は以下になります
+    for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
+        echo ・!UPDATE_LIST[%%i]!
+    )
+    @rem アップデート確認
+    set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
+    if /i not !UPDATE_SUCCESS!==Y (
+        call :CLEANUP
+        call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
+        exit
+    )
 )
 
+for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
+    call !UPDATE_ROUTINE_LIST[%%i]!
+)
 call :X264GUIEX_INSTALL
 
-rmdir /s /q "%DL_DIR%"
-rmdir /s /q "%FILE_DIR%"
-
+call :CLEANUP
 call :SHOW_MSG "アップデートが完了しました" vbInformation "情報" "modal"
 
 exit
 
 
+@rem インストール処理
 :INSATALL
 echo script version %SCRIPT_VER%
 echo これはAviUtlの環境を構築するプログラムです。
@@ -166,48 +160,15 @@ set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
 set INSTALL_DIR=%INSTALL_DIR_PRE%
 set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
-set AVIUTL_ZIP=aviutl100.zip
-set EXEDIT_ZIP=exedit92.zip
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
 @rem 作業環境構築
 call :WORKING_ENV_SETUP
 
-@rem 基本環境構築
-@rem 基本ファイルのDL
-echo AviUtlのダウンロード...
-call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_ZIP%" "%DL_DIR%\%AVIUTL_ZIP%"
-echo AviUtlのダウンロード完了
-echo 拡張編集のダウンロード...
-call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%"  "%DL_DIR%\%EXEDIT_ZIP%"
-echo 拡張編集のダウンロード完了
-echo L-SMASHのダウンロード...
-call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
-echo L-SMASHのダウンロード完了
-
-
-@rem AviUtlの展開
-%SZEXE% x "%DL_DIR%\%AVIUTL_ZIP%" -aoa -o"%AVIUTL_DIR%"
-
-set AVIUTL_DATE=
-for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
-    set AVIUTL_DATE=%%~ti
-)
-
-@rem LargeAddressAwareを有効化
-echo AviUtlのLargeAddressAwareを有効にします(これには1分ほどかかります)
-echo 0%%完了
-powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -first 262 | Set-Content -en byte \"%AVIUTL_DIR%\A-1.bin\""
-echo 25%%完了
-powershell -Command "[System.Text.Encoding]::ASCII.GetBytes(\"/\") | Set-Content -en byte \"%AVIUTL_DIR%\A-12.bin\""
-echo 50%%完了
-powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -last 487161 | Set-Content -en byte \"%AVIUTL_DIR%\A-2.bin\""
-echo 75%%完了
-copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.exe"
-powershell -Command "Set-ItemProperty \"%AVIUTL_DIR%\aviutl.exe\" -name LastWriteTime -value \"%AVIUTL_DATE%""
-del "%AVIUTL_DIR%"\*.bin
-echo 100%%完了
+echo AviUtlのインストール
+call :AVIUTL_GET_LATEST_VER_DATE
+call :AVIUTL_INSTALL
 
 @rem AviUtlの設定ファイルを生成する
 call :EXEC_AVIUTL
@@ -217,7 +178,6 @@ timeout /t 3 /nobreak > nul
     if /i not !INI_FILE!==aviutl.ini (
         goto SEARCH_INI
     )
-
 
 @rem aviutlの設定ファイルを編集
 @rem 変更内容
@@ -243,9 +203,15 @@ powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
 del "%AVIUTL_DIR%"\*.bin
 
+echo 拡張編集のインストール
+call :EXEDIT_GET_LATEST_VER_DATE
+call :EXEDIT_INSTALL
+
+echo L-SMASHのダウンロード...
+call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
+echo L-SMASHのダウンロード完了
 
 @rem プラグインなどを展開
-%SZEXE% x "%DL_DIR%\%EXEDIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
 %SZEXE% x "%DL_DIR%\%LSMASH_ZIP%" -aoa -o"%DL_DIR%"
 @move "%DL_DIR%\lw*.*" "%PLUGINS_DIR%"
 call :X264GUIEX_INSTALL
@@ -255,7 +221,7 @@ call :X264GUIEX_INSTALL
 @rem 劇場向けファイルのDL
 @rem PSDToolkit
 set PSDTOOLKIT_VER=
-call :PSDTOOLKIT_PRE_ROUTINE
+call :PSDTOOLKIT_GET_LATEST_VER
 call :PSDTOOLKIT_INSTALL
 
 @rem 風揺れ
@@ -302,18 +268,24 @@ call :EXEC_AVIUTL
 
 
 @rem 後始末
-rmdir /s /q "%DL_DIR%"
-rmdir /s /q "%FILE_DIR%"
-rmdir /s /q "%SVZIP_DIR%"
-
+call :CLEANUP
 call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
 
 exit
 
+
 @rem 以下、サブルーチン
 
-@rem Install/Update環境構築
-@rem 7zとHtoX
+@rem ヘルプを表示する
+:HELP
+    echo 使い方: %0 [オプション]
+    echo オプション:
+    echo    --rc         テストバージョンをインストールする
+    echo    --help       ヘルプを表示する
+    echo    --version    バージョンを表示する
+exit /b
+
+@rem インストール/アップデート環境構築
 :WORKING_ENV_SETUP
     if %SEL_UPDATE% equ 0 (
         @rem インストールを選択
@@ -421,7 +393,11 @@ exit /b 1
         echo retVal:!ERRORLEVEL!
     )
     call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー" "modal"
-    rmdir /s /q "%AVIUTL_DIR%"
+    if %SEL_UPDATE% equ 0 (
+        rmdir /s /q "%AVIUTL_DIR%"
+    ) else (
+        call :CLEANUP
+    )
     exit
 :DOWNLOAD_SUCCESS
 exit /b
@@ -582,6 +558,46 @@ exit /b
     set DT=!Y!/!MO!/!D! !H!:!MI!
 exit /b 0
 
+@rem 日時の0始まりを削除
+@rem 変数:DTに格納される
+@rem 戻り値 0:変換成功 -1:引数エラー
+:DATETIME_ZERO_DEL
+    if "%~1" equ "" exit /b -1
+    set DT=%~1
+    set DT=%DT:/= %
+    set DT=%DT::= %
+    echo !DT! > %TEMP%\dt.txt
+    for /f "tokens=1,2,3,4,5" %%a in (%TEMP%\dt.txt) do (
+        set Y=%%a
+        set /a MO=1%%b-100
+        set /a D=1%%c-100
+        set /a H=1%%d-100
+        set /a MI=1%%e-100
+    )
+    del %TEMP%\dt.txt
+    set DT=!Y!/!MO!/!D! !H!:!MI!
+exit /b 0
+
+@rem アップデート配列に対象名を登録
+@rem 引数: %1-アップデートのチェック結果 %2-登録する文字列 %3-登録するサブルーチンのラベル
+@rem 戻り値 0:成功 -1:引数エラー
+:UPDATE_NAME_REGIST
+    if "%~1" equ "" exit /b -1
+    if "%~2" equ "" exit /b -1
+    if "%~3" equ "" exit /b -1
+    if %1 equ 1 (
+        set /a UPDATE_LIST_CNT=UPDATE_LIST_CNT+1
+        set UPDATE_LIST[!UPDATE_LIST_CNT!]=%~2
+        set UPDATE_ROUTINE_LIST[!UPDATE_LIST_CNT!]=%~3
+    )
+exit /b 0
+
+@rem TEMPフォルダの後始末
+:CLEANUP
+    rmdir /s /q "%DL_DIR%"
+    rmdir /s /q "%FILE_DIR%"
+exit /b
+
 @rem 7zの環境構築
 :SZ_SETUP
     echo 7zのダウンロード...
@@ -620,23 +636,100 @@ exit /b
 
 exit /b
 
-@rem PSDToolkitインストールの前処理
-:PSDTOOLKIT_PRE_ROUTINE
-    @rem PSDToolkitのreleaseページ
-    set PSDTOOLKIT_REPO=psd_github.html
-    @rem releaseのhtmlファイルをDL
-    call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases" "%DL_DIR%\%PSDTOOLKIT_REPO%"
+@rem GitHubの最新リリースを取得
+@rem 引数: %1-URL %2-最新リリーステキスト出力先
+@rem 戻り値 0:成功 -1:引数エラー
+:GITHUB_GET_LATEST_RELEASE_VER
+    if "%~1" equ "" exit /b -1
+    call :FILE_DOWNLOAD %1 "%DL_DIR%\github_release.html"
     @rem htmlを解析
-    %HTOX% /I8 "%DL_DIR%\%PSDTOOLKIT_REPO%" > "%FILE_DIR%\htmlparse.txt"
+    %HTOX% /I8 "%DL_DIR%\github_release.html" > "%FILE_DIR%\htmlparse.txt"
     @rem psdtoolkitの最新バージョン取得
     findstr /C:"*  v" "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\tag.txt"
     set /p LINE=<"%FILE_DIR%\tag.txt"
     echo %LINE% > "%FILE_DIR%\tag.txt"
+exit /b 0
+
+@rem GitHubの最新リリースの日付を取得
+@rem 引数: %1-リリース日取得の検索文字列
+@rem 結果はGITHUB_DATEに格納する
+@rem 戻り値 0:成功 -1:引数エラー
+:GITHUB_GET_LATEST_RELEASE_DATE
+    if "%~1" equ "" exit /b -1
+    findstr /C:%1 "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\date.txt"
+    @rem 1行目を代入
+    set /p LINE=<"%FILE_DIR%\date.txt"
+    @rem 年月日のみを抽出
+    call :STRSTR "%LINE%" "this "
+    if %ERRORLEVEL% equ -3 (
+        call :SHOW_MSG "検索ワード:this が見つけられませんでした。エラー内容をバッチファイル製作者に報告してください" vbCritical "エラー" "modal"
+        call :CLEANUP
+        exit
+    )
+    set FRONT_LEN=%ERRORLEVEL%
+    call :STRSTR "%LINE%" "・"
+    if %ERRORLEVEL% equ -3 (
+        call :STRLEN "%LINE%" 
+    )
+    set LAST_LEN=%ERRORLEVEL%
+    set /a FRONT_LEN+=5
+    set /a DIFF=%LAST_LEN%-%FRONT_LEN%
+    set LINE=!LINE:~%FRONT_LEN%,%DIFF%!
+    echo %LINE% > "%FILE_DIR%\date.txt"
+    @rem 年月日を変数毎に分割
+    set YEAR=
+    set MONTH=
+    set DAY=
+    for /f "usebackq tokens=1,2,3" %%i in ("%FILE_DIR%\date.txt") do (
+        set MONTH=%%i
+        set DAY=%%j
+        set YEAR=%%k
+    )
+    @rem 文字列の月を数字に変換
+    call :CONV_MONTH "%MONTH%"
+    set MONTH=%ERRORLEVEL%
+    @rem GitHubのリリース日(yyyy/M/d)を代入
+    set GITHUB_DATE=%YEAR%/%MONTH%/%DAY:,=%
+exit /b 0
+
+@rem PSDToolkitの更新日時を取得
+:PSDTOOLKIT_GET_DATE
+    set PSDFILE_DATETIME_PRE=
+    for %%i in (plugins\PSDToolKit.auf) do (
+        set PSDFILE_DATETIME_PRE=%%~ti
+    )
+    call :CONV_UTC "%PSDFILE_DATETIME_PRE%"
+    set PSDFILE_DATETIME=!DT!
+    echo !PSDFILE_DATETIME! > "%FILE_DIR%\psddatetime.txt"
+
+    set PSDFILE_DATE=
+    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\psddatetime.txt") do (
+        set PSDFILE_DATE=%%i
+    )
+exit /b
+
+@rem PSDToolkit最新バージョン取得
+:PSDTOOLKIT_GET_LATEST_VER
+    @rem PSDToolkitの最新リリースを取得
+    call :GITHUB_GET_LATEST_RELEASE_VER "https://github.com/oov/aviutl_psdtoolkit/releases"
     set PSDTOOLKIT_VER=
     for /f "usebackq tokens=2" %%i in ("%FILE_DIR%\tag.txt") do (
         set PSDTOOLKIT_VER=%%i
     )
 exit /b
+
+@rem PSDToolkitアップデートチェック
+@rem 戻り値 0:アップデートなし 1:アップデートあり
+:PSDTOOLKIT_UPDATE_CHECK
+    @rem psdtoolkitの最新tagの日付取得
+    call :GITHUB_GET_LATEST_RELEASE_DATE "oov released this "
+    set GITHUB_PSD_DATE=%GITHUB_DATE%
+    @rem PSDToolkitの更新日時を取得
+    call :PSDTOOLKIT_GET_DATE
+    if !PSDFILE_DATE! lss !GITHUB_PSD_DATE! (
+        exit /b 1
+    )
+exit /b 0
 
 @rem PSDToolkitのインストール
 :PSDTOOLKIT_INSTALL
@@ -644,7 +737,8 @@ exit /b
     @rem PSDToolKitを展開
     %SZEXE% x "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 
-    mkdir %INSTALL_DIR_PRE%\AviUtl\PSDToolKitの説明ファイル群
+    rmdir /s /q "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
+    mkdir "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\PSDToolKitDocs" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.txt" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
     @move "%PLUGINS_DIR%\*.html" "%AVIUTL_DIR%\PSDToolKitの説明ファイル群"
@@ -652,8 +746,120 @@ exit /b
     @move "%AVIUTL_DIR%\PSDToolKitの説明ファイル群\lua.txt" "%PLUGINS_DIR%"
 exit /b
 
+@rem AviUtl最新バージョンと更新日を取得
+@rem AVIUTL_VERとAVIUTL_DATEに格納
+:AVIUTL_GET_LATEST_VER_DATE
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
+    %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
+    findstr /I /R /C:"\<aviutl[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
+    if %INSTALL_AVIUTL_RC_FLAG% equ 1 (
+        findstr /I /C:"テスト版" "%FILE_DIR%\list.txt" > "%FILE_DIR%\rclist.txt"
+        type "%FILE_DIR%\rclist.txt" > "%FILE_DIR%\list.txt"
+    )
+    set /p LINE=<"%FILE_DIR%\list.txt"
+    echo %LINE% > "%FILE_DIR%\latest.txt"
+    for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
+        set AVIUTL_VER=%%~ni
+        set AVIUTL_DATE=%%j
+    )
+exit /b
+
+@rem AviUtlのアップデートチェック
+@rem 戻り値 0:アップデートなし 1:アップデートあり
+:AVIUTL_UPDATE_CHECK
+    call :AVIUTL_GET_LATEST_VER_DATE
+    for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
+        set AVIUTL_EXE_DATE_PRE=%%~ti
+    )
+    call :DATETIME_ZERO_DEL "%AVIUTL_EXE_DATE_PRE%"
+    set AVIUTL_EXE_DATE=!DT!
+    echo %AVIUTL_EXE_DATE% > "%FILE_DIR%\aviutldatetime.txt"
+    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\aviutldatetime.txt") do (
+        set AVIUTL_EXE_DATE=%%i
+    )
+    if %AVIUTL_EXE_DATE% lss %AVIUTL_DATE% (
+        exit /b 1
+    )
+exit /b 0
+
+@rem AviUtlインストール
+:AVIUTL_INSTALL
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_VER%.zip" "%DL_DIR%\%AVIUTL_VER%.zip"
+    @rem AviUtlの展開
+    %SZEXE% x "%DL_DIR%\%AVIUTL_VER%.zip" -aoa -o"%AVIUTL_DIR%"
+    set AVIUTL_DATE=
+    for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
+        set AVIUTL_DATE=%%~ti
+    )
+
+    if "%AVIUTL_VER%"=="aviutl100" (
+        @rem LargeAddressAwareを有効化
+        echo AviUtlのLargeAddressAwareを有効にします（これには1分ほどかかります）
+        echo 0%%完了
+        powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -first 262 | Set-Content -en byte \"%AVIUTL_DIR%\A-1.bin\""
+        echo 25%%完了
+        powershell -Command "[System.Text.Encoding]::ASCII.GetBytes(\"/\") | Set-Content -en byte \"%AVIUTL_DIR%\A-12.bin\""
+        echo 50%%完了
+        powershell -Command "Get-Content -en byte \"%AVIUTL_DIR%\aviutl.exe\" | Select-Object -last 487161 | Set-Content -en byte \"%AVIUTL_DIR%\A-2.bin\""
+        echo 75%%完了
+        copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.exe"
+        powershell -Command "Set-ItemProperty \"%AVIUTL_DIR%\aviutl.exe\" -name LastWriteTime -value \"%AVIUTL_DATE%""
+        del "%AVIUTL_DIR%"\*.bin
+        echo 100%%完了
+    )
+exit /b
+
+@rem 拡張編集の最新バージョンと更新日を取得
+@rem EXEDIT_VERとEXEDIT_DATEに格納
+:EXEDIT_GET_LATEST_VER_DATE
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
+    %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
+    findstr /I /R /C:"\<exedit[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
+    set /p LINE=<"%FILE_DIR%\list.txt"
+    echo %LINE% > "%FILE_DIR%\latest.txt"
+    for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
+        set EXEDIT_VER=%%~ni
+        set EXEDIT_DATE=%%j
+    )
+exit /b
+
+@rem 拡張編集のアップデートチェック
+@rem 戻り値 0:アップデートなし 1:アップデートあり
+:EXEDIT_UPDATE_CHECK
+    call :EXEDIT_GET_LATEST_VER_DATE
+    for %%i in ("%AVIUTL_DIR%\plugins\exedit.auf") do (
+        set EXEDIT_AUF_DATE_PRE=%%~ti
+    )
+    call :DATETIME_ZERO_DEL %EXEDIT_AUF_DATE_PRE%
+    set EXEDIT_AUF_DATE=!DT!
+    echo %EXEDIT_AUF_DATE% > "%FILE_DIR%\exeditdatetime.txt"
+    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\exeditdatetime.txt") do (
+        set EXEDIT_AUF_DATE=%%i
+    )
+    if %EXEDIT_AUF_DATE% lss %EXEDIT_DATE% (
+        exit /b 1
+    )
+exit /b 0
+
+@rem 拡張編集インストール
+:EXEDIT_INSTALL
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_VER%.zip" "%DL_DIR%\%EXEDIT_VER%.zip"
+    @rem 拡張編集の展開
+    %SZEXE% x "%DL_DIR%\%EXEDIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
+exit /b
+
 @rem リリースノート
-@rem 2019/9/19(v3.2.0)
+@rem 2019/9/22 (v4.0.0)
+@rem     aviutl.exeチェックとコメントをメンテナンス
+@rem     テスト版AviUtlのインストール/アップデートする機能を追加
+@rem     コマンドラインオプション機能を追加
+@rem     アップデートでDLエラーが発生した時にAviUtlフォルダごと消してしまうのを修正
+@rem     AviUtlと拡張編集のバージョンをネットから取得するように変更
+@rem     AviUtlおよび拡張編集のアップデート機能を追加
+@rem     後始末処理をサブルーチン化
+@rem     PSDToolkitアップデート時に"PSDToolKitの説明ファイル群"フォルダの作成場所がおかしかったのを修正
+@rem     アップデートの有無をチェックしてからアップデートの選択を行うように変更
+@rem 2019/9/19 (v3.2.0)
 @rem     LargeAddressAwareを有効化後のaviutl.exeの更新日をオリジナルと同じにするように変更
 @rem     作業環境構築ルーチン追加
 @rem     英語表記の月の条件分岐を修正
