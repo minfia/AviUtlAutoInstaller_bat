@@ -82,6 +82,10 @@ call :WORKING_ENV_SETUP
 call :AVIUTL_UPDATE_CHECK
 call :UPDATE_NAME_REGIST %ERRORLEVEL% "AviUtl" ":AVIUTL_INSTALL"
 
+@rem 拡張編集のアップデートチェック
+call :EXEDIT_UPDATE_CHECK
+call :UPDATE_NAME_REGIST %ERRORLEVEL% "拡張編集" ":EXEDIT_INSTALL"
+
 @rem PSDToolkitのアップデート
 call :PSDTOOLKIT_GET_LATEST_VER
 call :PSDTOOLKIT_UPDATE_CHECK
@@ -133,7 +137,7 @@ set INSTALL_DIR=%INSTALL_DIR_PRE%
 set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
 set AVIUTL_VER=aviutl100
-set EXEDIT_ZIP=exedit92.zip
+set EXEDIT_VER=exedit92
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
@@ -176,15 +180,14 @@ powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select
 copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
 del "%AVIUTL_DIR%"\*.bin
 
-echo 拡張編集のダウンロード...
-call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_ZIP%"  "%DL_DIR%\%EXEDIT_ZIP%"
-echo 拡張編集のダウンロード完了
+echo 拡張編集のインストール
+call :EXEDIT_INSTALL
+
 echo L-SMASHのダウンロード...
 call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
 echo L-SMASHのダウンロード完了
 
 @rem プラグインなどを展開
-%SZEXE% x "%DL_DIR%\%EXEDIT_ZIP%" -aoa -o"%PLUGINS_DIR%"
 %SZEXE% x "%DL_DIR%\%LSMASH_ZIP%" -aoa -o"%DL_DIR%"
 @move "%DL_DIR%\lw*.*" "%PLUGINS_DIR%"
 call :X264GUIEX_INSTALL
@@ -742,6 +745,44 @@ exit /b 0
         del "%AVIUTL_DIR%"\*.bin
         echo 100%%完了
     )
+exit /b
+
+@rem 拡張編集の最新バージョンと更新日を取得
+@rem EXEDIT_VERとEXEDIT_DATEに格納
+:EXEDIT_GET_LATEST_VER_DATE
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
+    %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
+    findstr /I /R /C:"\<exedit[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
+    set /p LINE=<"%FILE_DIR%\list.txt"
+    echo %LINE% > "%FILE_DIR%\latest.txt"
+    for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
+        set EXEDIT_VER=%%~ni
+        set EXEDIT_DATE=%%j
+    )
+exit /b
+
+@rem 拡張編集のアップデートチェック
+@rem 戻り値 0:アップデートなし 1:アップデートあり
+:EXEDIT_UPDATE_CHECK
+    call :EXEDIT_GET_LATEST_VER_DATE
+    for %%i in ("%AVIUTL_DIR%\plugins\exedit.auf") do (
+        set EXEDIT_AUF_DATE_PRE=%%~ti
+    )
+    echo %EXEDIT_AUF_DATE_PRE% > "%FILE_DIR%\exeditdatetime.txt"
+    set EXEDIT_AUF_DATE=
+    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\exeditdatetime.txt") do (
+        set EXEDIT_AUF_DATE=%%i
+    )
+    if %EXEDIT_AUF_DATE% lss %EXEDIT_DATE% (
+        exit /b 1
+    )
+exit /b 0
+
+@rem 拡張編集インストール
+:EXEDIT_INSTALL
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_VER%.zip" "%DL_DIR%\%EXEDIT_VER%.zip"
+    @rem 拡張編集の展開
+    %SZEXE% x "%DL_DIR%\%EXEDIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 exit /b
 
 @rem リリースノート
