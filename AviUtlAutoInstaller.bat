@@ -136,8 +136,6 @@ set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
 set INSTALL_DIR=%INSTALL_DIR_PRE%
 set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
-set AVIUTL_VER=aviutl100
-set EXEDIT_VER=exedit92
 set LSMASH_VER=r935-2
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
@@ -145,6 +143,7 @@ set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 call :WORKING_ENV_SETUP
 
 echo AviUtlのインストール
+call :AVIUTL_GET_LATEST_VER_DATE
 call :AVIUTL_INSTALL
 
 @rem AviUtlの設定ファイルを生成する
@@ -181,6 +180,7 @@ copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.
 del "%AVIUTL_DIR%"\*.bin
 
 echo 拡張編集のインストール
+call :EXEDIT_GET_LATEST_VER_DATE
 call :EXEDIT_INSTALL
 
 echo L-SMASHのダウンロード...
