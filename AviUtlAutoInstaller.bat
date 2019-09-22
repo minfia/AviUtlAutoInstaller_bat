@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=3.2.0
+set SCRIPT_VER=4.0.0
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -849,6 +849,16 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2019/9/22 (v4.0.0)
+@rem     aviutl.exeチェックとコメントをメンテナンス
+@rem     テスト版AviUtlのインストール/アップデートする機能を追加
+@rem     コマンドラインオプション機能を追加
+@rem     アップデートでDLエラーが発生した時にAviUtlフォルダごと消してしまうのを修正
+@rem     AviUtlと拡張編集のバージョンをネットから取得するように変更
+@rem     AviUtlおよび拡張編集のアップデート機能を追加
+@rem     後始末処理をサブルーチン化
+@rem     PSDToolkitアップデート時に"PSDToolKitの説明ファイル群"フォルダの作成場所がおかしかったのを修正
+@rem     アップデートの有無をチェックしてからアップデートの選択を行うように変更
 @rem 2019/9/19 (v3.2.0)
 @rem     LargeAddressAwareを有効化後のaviutl.exeの更新日をオリジナルと同じにするように変更
 @rem     作業環境構築ルーチン追加
