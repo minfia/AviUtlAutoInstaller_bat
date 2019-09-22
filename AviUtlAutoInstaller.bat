@@ -49,7 +49,10 @@ set DL_RETRY=3
 set X264GUIEX_VER=2.59
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 
+@rem バッチファイル実行時の処理選択
+@rem 0:インストール 1:アップデート
 set SEL_UPDATE=0
+@rem テスト版AviUtlインストールフラグ
 set INSTALL_AVIUTL_RC_FLAG=0
 
 @rem コマンドラインオプション処理
@@ -70,15 +73,16 @@ set INSTALL_AVIUTL_RC_FLAG=0
     )
 
 
-where aviutl.exe > nul
+where aviutl.exe > nul 2>&1
 if %ERRORLEVEL% equ 0 (
     set SEL_UPDATE=1
-    call :UPDATE
+    goto :UPDATE
 ) else (
     goto :INSATALL
 )
 
 
+@rem アップデート処理
 :UPDATE
 @rem アップデート一覧格納配列
 set UPDATE_LIST=
@@ -139,6 +143,7 @@ call :SHOW_MSG "アップデートが完了しました" vbInformation "情報" "modal"
 exit
 
 
+@rem インストール処理
 :INSATALL
 echo script version %SCRIPT_VER%
 echo これはAviUtlの環境を構築するプログラムです。
@@ -268,6 +273,7 @@ call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
 
 exit
 
+
 @rem 以下、サブルーチン
 
 @rem ヘルプを表示する
@@ -279,8 +285,7 @@ exit
     echo    --version    バージョンを表示する
 exit /b
 
-@rem Install/Update環境構築
-@rem 7zとHtoX
+@rem インストール/アップデート環境構築
 :WORKING_ENV_SETUP
     if %SEL_UPDATE% equ 0 (
         @rem インストールを選択
@@ -844,7 +849,7 @@ exit /b 0
 exit /b
 
 @rem リリースノート
-@rem 2019/9/19(v3.2.0)
+@rem 2019/9/19 (v3.2.0)
 @rem     LargeAddressAwareを有効化後のaviutl.exeの更新日をオリジナルと同じにするように変更
 @rem     作業環境構築ルーチン追加
 @rem     英語表記の月の条件分岐を修正
