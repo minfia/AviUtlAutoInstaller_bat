@@ -521,6 +521,26 @@ exit /b
     set DT=!Y!/!MO!/!D! !H!:!MI!
 exit /b 0
 
+@rem 日時の0始まりを削除
+@rem 変数:DTに格納される
+@rem 戻り値 0:変換成功 -1:引数エラー
+:DATETIME_ZERO_DEL
+    if "%~1" equ "" exit /b -1
+    set DT=%~1
+    set DT=%DT:/= %
+    set DT=%DT::= %
+    echo !DT! > %TEMP%\dt.txt
+    for /f "tokens=1,2,3,4,5" %%a in (%TEMP%\dt.txt) do (
+        set Y=%%a
+        set /a MO=1%%b-100
+        set /a D=1%%c-100
+        set /a H=1%%d-100
+        set /a MI=1%%e-100
+    )
+    del %TEMP%\dt.txt
+    set DT=!Y!/!MO!/!D! !H!:!MI!
+exit /b 0
+
 @rem アップデート配列に対象名を登録
 @rem 引数: %1-アップデートのチェック結果 %2-登録する文字列 %3-登録するサブルーチンのラベル
 @rem 戻り値 0:成功 -1:引数エラー
@@ -710,8 +730,9 @@ exit /b
     for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
         set AVIUTL_EXE_DATE_PRE=%%~ti
     )
-    echo %AVIUTL_EXE_DATE_PRE% > "%FILE_DIR%\aviutldatetime.txt"
-    set AVIUTL_EXE_DATE=
+    call :DATETIME_ZERO_DEL "%AVIUTL_EXE_DATE_PRE%"
+    set AVIUTL_EXE_DATE=!DT!
+    echo %AVIUTL_EXE_DATE% > "%FILE_DIR%\aviutldatetime.txt"
     for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\aviutldatetime.txt") do (
         set AVIUTL_EXE_DATE=%%i
     )
@@ -768,8 +789,9 @@ exit /b
     for %%i in ("%AVIUTL_DIR%\plugins\exedit.auf") do (
         set EXEDIT_AUF_DATE_PRE=%%~ti
     )
-    echo %EXEDIT_AUF_DATE_PRE% > "%FILE_DIR%\exeditdatetime.txt"
-    set EXEDIT_AUF_DATE=
+    call :DATETIME_ZERO_DEL %EXEDIT_AUF_DATE_PRE%
+    set EXEDIT_AUF_DATE=!DT!
+    echo %EXEDIT_AUF_DATE% > "%FILE_DIR%\exeditdatetime.txt"
     for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\exeditdatetime.txt") do (
         set EXEDIT_AUF_DATE=%%i
     )
