@@ -360,7 +360,11 @@ exit /b 1
         echo retVal:!ERRORLEVEL!
     )
     call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー" "modal"
-    rmdir /s /q "%AVIUTL_DIR%"
+    if %SEL_UPDATE% equ 0 (
+        rmdir /s /q "%AVIUTL_DIR%"
+    ) else (
+        call :CLEANUP
+    )
     exit
 :DOWNLOAD_SUCCESS
 exit /b
