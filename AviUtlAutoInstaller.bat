@@ -51,6 +51,22 @@ set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 
 set SEL_UPDATE=0
 
+@rem コマンドラインオプション処理
+:OPTION
+    if not "%1"=="" (
+        if "%1"=="--help" (
+            goto :HELP
+        ) else if "%1"=="--version" (
+            echo version: %SCRIPT_VER%
+            exit /b
+        ) else (
+            goto :HELP
+        )
+        shift /1
+        goto :OPTION
+    )
+
+
 where aviutl.exe > nul
 if %ERRORLEVEL% equ 0 (
     set SEL_UPDATE=1
@@ -250,6 +266,14 @@ call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
 exit
 
 @rem 以下、サブルーチン
+
+@rem ヘルプを表示する
+:HELP
+    echo 使い方: %0 [オプション]
+    echo オプション:
+    echo    --help       ヘルプを表示する
+    echo    --version    バージョンを表示する
+exit /b
 
 @rem Install/Update環境構築
 @rem 7zとHtoX
