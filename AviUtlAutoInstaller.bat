@@ -54,12 +54,24 @@ set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 set SEL_UPDATE=0
 @rem テスト版AviUtlインストールフラグ
 set INSTALL_AVIUTL_RC_FLAG=0
+@rem テスト版拡張変数インストールフラグ
+set INSTALL_EXEDIT_RC_FLAG=0
 
 @rem コマンドラインオプション処理
 :OPTION
     if not "%1"=="" (
         if "%1"=="--rc" (
-            set INSTALL_AVIUTL_RC_FLAG=1
+            if "%2"=="aviutl" (
+                set INSTALL_AVIUTL_RC_FLAG=1
+            ) else if "%2"=="exedit" (
+                set INSTALL_EXEDIT_RC_FLAG=1
+            ) else if "%2"=="" (
+                set INSTALL_AVIUTL_RC_FLAG=1
+                set INSTALL_EXEDIT_RC_FLAG=1
+            ) else (
+                goto :HELP
+            )
+            shift /1
         )else if "%1"=="--help" (
             goto :HELP
         ) else if "%1"=="--version" (
@@ -280,7 +292,9 @@ exit
 :HELP
     echo 使い方: %0 [オプション]
     echo オプション:
-    echo    --rc         テストバージョンをインストールする
+    echo    --rc         テスト版AviUtlと拡張編集をインストールする
+    echo         aviutl  テスト版AviUtlをインストールする
+    echo         exedit  テスト版拡張編集をインストールする
     echo    --help       ヘルプを表示する
     echo    --version    バージョンを表示する
 exit /b
@@ -815,6 +829,10 @@ exit /b
     call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
     %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
     findstr /I /R /C:"\<exedit[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
+    if %INSTALL_EXEDIT_RC_FLAG% equ 1 (
+        findstr /I /C:"テスト版" "%FILE_DIR%\list.txt" > "%FILE_DIR%\rclist.txt"
+        type "%FILE_DIR%\rclist.txt" > "%FILE_DIR%\list.txt"
+    )
     set /p LINE=<"%FILE_DIR%\list.txt"
     echo %LINE% > "%FILE_DIR%\latest.txt"
     for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
