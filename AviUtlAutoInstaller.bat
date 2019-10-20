@@ -206,19 +206,20 @@ timeout /t 3 /nobreak > nul
 @rem aviutlの設定ファイルを編集
 @rem 変更内容
 @rem 最大画像サイズ(1280x720 -> 2200x1200)
-@rem キャッシュフレーム数(8 -> 32)
+@rem キャッシュサイズ(256 -> 512)
 @rem リサイズ解像度リスト(1920x1080を追加)
 @rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
+@rem 編集ファイルが閉じられるときに確認ダイアログを表示する(無効 -> 有効)
 call :FILE_SEARCH_STR "%AVIUTL_DIR%\aviutl.ini" "[system]"
 set SYSTEM_POS=%ERRORLEVEL%
 call :FILE_LINE_CNT "%AVIUTL_DIR%\aviutl.ini"
 set LINE=%ERRORLEVEL%
 set /a TAILE=LINE-SYSTEM_POS
 powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first %SYSTEM_POS% | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
-powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`ncache=32^
+powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`nsharecache=512^
 `r`nmoveA=5`r`nmoveB=30`r`nmoveC=899`r`nmoveD=8991`r`nsaveunitsize=4096`r`ncompprofile=1`r`nplugincache=1^
 `r`nstartframe=1`r`nshiftselect=1`r`nyuy2mode=0`r`nmovieplaymain=1`r`nvfplugin=1`r`nyuy2limit=0`r`neditresume=0`r`nfpsnoconvert=0^
-`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=0^
+`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=1^
 `r`nprojectonfig=0`r`nwindowsnap=0`r`ndragdropactive=1`r`ntrackbarclick=1`r`ndefaultsavefile=%%p`r`nfinishsound=^
 `r`nresizelist=1920x1080`,1280x720`,640x480`,352x240`,320x240^
 `r`nfpslist=*`,30000/1001`,24000/1001`,60000/1001`,60`,50`,30`,25`,24`,20`,15`,12`,10`,8`,6`,5`,4`,3`,2`,1^
