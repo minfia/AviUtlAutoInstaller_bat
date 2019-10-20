@@ -180,6 +180,18 @@ call :WORKING_ENV_SETUP
 
 echo AviUtlのインストール
 call :AVIUTL_GET_LATEST_VER_DATE
+if %ERRORLEVEL% equ 1 (
+    if %INSTALL_EXEDIT_RC_FLAG% equ 1 (
+        @rem テスト版拡張編集のインストールも行う場合
+        set INSTALL_AVIUTL_RC_FLAG=0
+        call :AVIUTL_GET_LATEST_VER_DATE
+        set INSTALL_AVIUTL_RC_FLAG=1
+    ) else (
+        call :SHOW_MSG "テスト版AviUtlが見つかりませんでした。" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+)
 call :AVIUTL_INSTALL
 
 @rem AviUtlの設定ファイルを生成する
@@ -217,6 +229,17 @@ del "%AVIUTL_DIR%"\*.bin
 
 echo 拡張編集のインストール
 call :EXEDIT_GET_LATEST_VER_DATE
+if %ERRORLEVEL% equ 1 (
+    if %INSTALL_AVIUTL_RC_FLAG% equ 1 (
+        @rem テスト版AviUtlのインストールも行う場合
+        set INSTALL_EXEDIT_RC_FLAG=0
+        call :EXEDIT_GET_LATEST_VER_DATE
+    ) else (
+        call :SHOW_MSG "テスト版拡張編集が見つかりませんでした。" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+)
 call :EXEDIT_INSTALL
 
 echo L-SMASHのダウンロード...
@@ -290,11 +313,11 @@ exit
 
 @rem ヘルプを表示する
 :HELP
-    echo 使い方: %0 [オプション]
+    echo 使い方: %~nx0 [オプション]
     echo オプション:
-    echo    --rc         テスト版AviUtlと拡張編集をインストールする
-    echo         aviutl  テスト版AviUtlをインストールする
-    echo         exedit  テスト版拡張編集をインストールする
+    echo    --rc         テスト版AviUtlと拡張編集をインストールする(存在するもののみ)
+    echo         aviutl  テスト版AviUtlをインストールする(存在する場合)
+    echo         exedit  テスト版拡張編集をインストールする(存在する場合)
     echo    --help       ヘルプを表示する
     echo    --version    バージョンを表示する
 exit /b
@@ -762,6 +785,7 @@ exit /b
 
 @rem AviUtl最新バージョンと更新日を取得
 @rem AVIUTL_VERとAVIUTL_DATEに格納
+@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む)
 :AVIUTL_GET_LATEST_VER_DATE
     call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
     %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
@@ -771,17 +795,23 @@ exit /b
         type "%FILE_DIR%\rclist.txt" > "%FILE_DIR%\list.txt"
     )
     set /p LINE=<"%FILE_DIR%\list.txt"
+    if "%LINE%"=="" (
+        exit /b 1
+    )
     echo %LINE% > "%FILE_DIR%\latest.txt"
     for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
         set AVIUTL_VER=%%~ni
         set AVIUTL_DATE=%%j
     )
-exit /b
+exit /b 0
 
 @rem AviUtlのアップデートチェック
 @rem 戻り値 0:アップデートなし 1:アップデートあり
 :AVIUTL_UPDATE_CHECK
     call :AVIUTL_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ 1 (
+        exit /b 0
+    )
     for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
         set AVIUTL_EXE_DATE_PRE=%%~ti
     )
@@ -825,6 +855,7 @@ exit /b
 
 @rem 拡張編集の最新バージョンと更新日を取得
 @rem EXEDIT_VERとEXEDIT_DATEに格納
+@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む)
 :EXEDIT_GET_LATEST_VER_DATE
     call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
     %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
@@ -834,17 +865,23 @@ exit /b
         type "%FILE_DIR%\rclist.txt" > "%FILE_DIR%\list.txt"
     )
     set /p LINE=<"%FILE_DIR%\list.txt"
+    if "%LINE%"=="" (
+        exit /b 1
+    )
     echo %LINE% > "%FILE_DIR%\latest.txt"
     for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
         set EXEDIT_VER=%%~ni
         set EXEDIT_DATE=%%j
     )
-exit /b
+exit /b 0
 
 @rem 拡張編集のアップデートチェック
 @rem 戻り値 0:アップデートなし 1:アップデートあり
 :EXEDIT_UPDATE_CHECK
     call :EXEDIT_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ 1 (
+        exit /b 0
+    )
     for %%i in ("%AVIUTL_DIR%\plugins\exedit.auf") do (
         set EXEDIT_AUF_DATE_PRE=%%~ti
     )
