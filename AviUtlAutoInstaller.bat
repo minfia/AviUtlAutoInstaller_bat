@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=4.0.0
+set SCRIPT_VER=4.1.0
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -909,6 +909,12 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2019/10/22 (v4.1.0)
+@rem     アップデート時にaviutl.vfpを削除するように変更
+@rem     DATE比較がおかしかったのを修正
+@rem     設定ファイルのパラメータを変更
+@rem     テスト版が無い時の動作エラーを修正
+@rem     テスト版拡張編集のインストール/アップデート機能を追加
 @rem 2019/9/22 (v4.0.0)
 @rem     aviutl.exeチェックとコメントをメンテナンス
 @rem     テスト版AviUtlのインストール/アップデートする機能を追加
