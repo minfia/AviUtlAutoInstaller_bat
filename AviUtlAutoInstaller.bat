@@ -858,6 +858,7 @@ exit /b 0
         del "%AVIUTL_DIR%"\*.bin
         echo 100%%完了
     )
+    del "%AVIUTL_DIR%"\aviutl.vfp > nul 2>&1
 exit /b
 
 @rem 拡張編集の最新バージョンと更新日を取得
