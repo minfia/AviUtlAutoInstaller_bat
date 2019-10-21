@@ -547,7 +547,7 @@ exit /b
     :M_OTHER
         exit /b -2
 
-@rem JST日時(yyyy/M/d HH:mm)からUTC年月日(yyyy/M/d)へ変換する
+@rem JST日時(yyyy/MM/dd HH:mm)からUTC年月日(yyyy/MM/dd HH:mm)へ変換する
 @rem 変数:DTに格納される
 @rem 引数: %1-計算対象日時
 @rem 戻り値 0:変換成功 -1:引数エラー
@@ -594,12 +594,13 @@ exit /b
     )
     del %TEMP%\dt.txt
     set DT=!Y!/!MO!/!D! !H!:!MI!
+    call :DATETIME_ADD_ZERO "%DT%"
 exit /b 0
 
-@rem 日時の0始まりを削除
+@rem 日時が1桁の時に0を付与
 @rem 変数:DTに格納される
-@rem 戻り値 0:変換成功 -1:引数エラー
-:DATETIME_ZERO_DEL
+@rem 戻り値 0:成功 -1:引数エラー
+:DATETIME_ADD_ZERO
     if "%~1" equ "" exit /b -1
     set DT=%~1
     set DT=%DT:/= %
@@ -607,13 +608,25 @@ exit /b 0
     echo !DT! > %TEMP%\dt.txt
     for /f "tokens=1,2,3,4,5" %%a in (%TEMP%\dt.txt) do (
         set Y=%%a
-        set /a MO=1%%b-100
-        set /a D=1%%c-100
-        set /a H=1%%d-100
-        set /a MI=1%%e-100
+        set MO=%%b
+        set DD=%%c
+        set HH=%%d
+        set MI=%%e
     )
     del %TEMP%\dt.txt
-    set DT=!Y!/!MO!/!D! !H!:!MI!
+    if !MO! lss 10 (
+        set MO=0!MO!
+    )
+    if !DD! lss 10 (
+        set DD=0!DD!
+    )
+    if !HH! lss 10 (
+        set HH=0!HH!
+    )
+    if !MI! lss 10 (
+        set MI=0!MI!
+    )
+    set DT=!Y!/!MO!/!DD! !HH!:!MI!
 exit /b 0
 
 @rem アップデート配列に対象名を登録
@@ -726,8 +739,10 @@ exit /b 0
     @rem 文字列の月を数字に変換
     call :CONV_MONTH "%MONTH%"
     set MONTH=%ERRORLEVEL%
-    @rem GitHubのリリース日(yyyy/M/d)を代入
+    @rem GitHubのリリース日(yyyy/MM/dd)を代入
     set GITHUB_DATE=%YEAR%/%MONTH%/%DAY:,=%
+    call :DATETIME_ADD_ZERO "%GITHUB_DATE%"
+    set GITHUB_DATE=%DT%
 exit /b 0
 
 @rem PSDToolkitの更新日時を取得
@@ -738,12 +753,6 @@ exit /b 0
     )
     call :CONV_UTC "%PSDFILE_DATETIME_PRE%"
     set PSDFILE_DATETIME=!DT!
-    echo !PSDFILE_DATETIME! > "%FILE_DIR%\psddatetime.txt"
-
-    set PSDFILE_DATE=
-    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\psddatetime.txt") do (
-        set PSDFILE_DATE=%%i
-    )
 exit /b
 
 @rem PSDToolkit最新バージョン取得
@@ -761,10 +770,10 @@ exit /b
 :PSDTOOLKIT_UPDATE_CHECK
     @rem psdtoolkitの最新tagの日付取得
     call :GITHUB_GET_LATEST_RELEASE_DATE "oov released this "
-    set GITHUB_PSD_DATE=%GITHUB_DATE%
+    set GITHUB_PSD_DATETIME=%GITHUB_DATE%
     @rem PSDToolkitの更新日時を取得
     call :PSDTOOLKIT_GET_DATE
-    if !PSDFILE_DATE! lss !GITHUB_PSD_DATE! (
+    if !PSDFILE_DATETIME! lss !GITHUB_PSD_DATETIME! (
         exit /b 1
     )
 exit /b 0
@@ -804,6 +813,8 @@ exit /b
         set AVIUTL_VER=%%~ni
         set AVIUTL_DATE=%%j
     )
+    call :DATETIME_ADD_ZERO "%AVIUTL_DATE%"
+    set AVIUTL_DATE=!DT!
 exit /b 0
 
 @rem AviUtlのアップデートチェック
@@ -816,13 +827,8 @@ exit /b 0
     for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
         set AVIUTL_EXE_DATE_PRE=%%~ti
     )
-    call :DATETIME_ZERO_DEL "%AVIUTL_EXE_DATE_PRE%"
-    set AVIUTL_EXE_DATE=!DT!
-    echo %AVIUTL_EXE_DATE% > "%FILE_DIR%\aviutldatetime.txt"
-    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\aviutldatetime.txt") do (
-        set AVIUTL_EXE_DATE=%%i
-    )
-    if %AVIUTL_EXE_DATE% lss %AVIUTL_DATE% (
+    set AVIUTL_EXE_DATE=!AVIUTL_EXE_DATE_PRE!
+    if !AVIUTL_EXE_DATE! lss !AVIUTL_DATE! (
         exit /b 1
     )
 exit /b 0
@@ -874,6 +880,8 @@ exit /b
         set EXEDIT_VER=%%~ni
         set EXEDIT_DATE=%%j
     )
+    call :DATETIME_ADD_ZERO "%EXEDIT_DATE%"
+    set EXEDIT_DATE=!DT!
 exit /b 0
 
 @rem 拡張編集のアップデートチェック
@@ -886,13 +894,8 @@ exit /b 0
     for %%i in ("%AVIUTL_DIR%\plugins\exedit.auf") do (
         set EXEDIT_AUF_DATE_PRE=%%~ti
     )
-    call :DATETIME_ZERO_DEL %EXEDIT_AUF_DATE_PRE%
-    set EXEDIT_AUF_DATE=!DT!
-    echo %EXEDIT_AUF_DATE% > "%FILE_DIR%\exeditdatetime.txt"
-    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\exeditdatetime.txt") do (
-        set EXEDIT_AUF_DATE=%%i
-    )
-    if %EXEDIT_AUF_DATE% lss %EXEDIT_DATE% (
+    set EXEDIT_AUF_DATE=!EXEDIT_AUF_DATE_PRE!
+    if !EXEDIT_AUF_DATE! lss !EXEDIT_DATE! (
         exit /b 1
     )
 exit /b 0
