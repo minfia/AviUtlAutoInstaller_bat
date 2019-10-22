@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=4.0.0
+set SCRIPT_VER=4.1.0
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -54,12 +54,24 @@ set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 set SEL_UPDATE=0
 @rem テスト版AviUtlインストールフラグ
 set INSTALL_AVIUTL_RC_FLAG=0
+@rem テスト版拡張変数インストールフラグ
+set INSTALL_EXEDIT_RC_FLAG=0
 
 @rem コマンドラインオプション処理
 :OPTION
     if not "%1"=="" (
         if "%1"=="--rc" (
-            set INSTALL_AVIUTL_RC_FLAG=1
+            if "%2"=="aviutl" (
+                set INSTALL_AVIUTL_RC_FLAG=1
+            ) else if "%2"=="exedit" (
+                set INSTALL_EXEDIT_RC_FLAG=1
+            ) else if "%2"=="" (
+                set INSTALL_AVIUTL_RC_FLAG=1
+                set INSTALL_EXEDIT_RC_FLAG=1
+            ) else (
+                goto :HELP
+            )
+            shift /1
         )else if "%1"=="--help" (
             goto :HELP
         ) else if "%1"=="--version" (
@@ -168,6 +180,18 @@ call :WORKING_ENV_SETUP
 
 echo AviUtlのインストール
 call :AVIUTL_GET_LATEST_VER_DATE
+if %ERRORLEVEL% equ 1 (
+    if %INSTALL_EXEDIT_RC_FLAG% equ 1 (
+        @rem テスト版拡張編集のインストールも行う場合
+        set INSTALL_AVIUTL_RC_FLAG=0
+        call :AVIUTL_GET_LATEST_VER_DATE
+        set INSTALL_AVIUTL_RC_FLAG=1
+    ) else (
+        call :SHOW_MSG "テスト版AviUtlが見つかりませんでした。" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+)
 call :AVIUTL_INSTALL
 
 @rem AviUtlの設定ファイルを生成する
@@ -182,19 +206,20 @@ timeout /t 3 /nobreak > nul
 @rem aviutlの設定ファイルを編集
 @rem 変更内容
 @rem 最大画像サイズ(1280x720 -> 2200x1200)
-@rem キャッシュフレーム数(8 -> 32)
+@rem キャッシュサイズ(256 -> 512)
 @rem リサイズ解像度リスト(1920x1080を追加)
 @rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
+@rem 編集ファイルが閉じられるときに確認ダイアログを表示する(無効 -> 有効)
 call :FILE_SEARCH_STR "%AVIUTL_DIR%\aviutl.ini" "[system]"
 set SYSTEM_POS=%ERRORLEVEL%
 call :FILE_LINE_CNT "%AVIUTL_DIR%\aviutl.ini"
 set LINE=%ERRORLEVEL%
 set /a TAILE=LINE-SYSTEM_POS
 powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first %SYSTEM_POS% | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
-powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`ncache=32^
+powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`nsharecache=512^
 `r`nmoveA=5`r`nmoveB=30`r`nmoveC=899`r`nmoveD=8991`r`nsaveunitsize=4096`r`ncompprofile=1`r`nplugincache=1^
 `r`nstartframe=1`r`nshiftselect=1`r`nyuy2mode=0`r`nmovieplaymain=1`r`nvfplugin=1`r`nyuy2limit=0`r`neditresume=0`r`nfpsnoconvert=0^
-`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=0^
+`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=1^
 `r`nprojectonfig=0`r`nwindowsnap=0`r`ndragdropactive=1`r`ntrackbarclick=1`r`ndefaultsavefile=%%p`r`nfinishsound=^
 `r`nresizelist=1920x1080`,1280x720`,640x480`,352x240`,320x240^
 `r`nfpslist=*`,30000/1001`,24000/1001`,60000/1001`,60`,50`,30`,25`,24`,20`,15`,12`,10`,8`,6`,5`,4`,3`,2`,1^
@@ -205,6 +230,17 @@ del "%AVIUTL_DIR%"\*.bin
 
 echo 拡張編集のインストール
 call :EXEDIT_GET_LATEST_VER_DATE
+if %ERRORLEVEL% equ 1 (
+    if %INSTALL_AVIUTL_RC_FLAG% equ 1 (
+        @rem テスト版AviUtlのインストールも行う場合
+        set INSTALL_EXEDIT_RC_FLAG=0
+        call :EXEDIT_GET_LATEST_VER_DATE
+    ) else (
+        call :SHOW_MSG "テスト版拡張編集が見つかりませんでした。" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+)
 call :EXEDIT_INSTALL
 
 echo L-SMASHのダウンロード...
@@ -278,9 +314,11 @@ exit
 
 @rem ヘルプを表示する
 :HELP
-    echo 使い方: %0 [オプション]
+    echo 使い方: %~nx0 [オプション]
     echo オプション:
-    echo    --rc         テストバージョンをインストールする
+    echo    --rc         テスト版AviUtlと拡張編集をインストールする(存在するもののみ)
+    echo         aviutl  テスト版AviUtlをインストールする(存在する場合)
+    echo         exedit  テスト版拡張編集をインストールする(存在する場合)
     echo    --help       ヘルプを表示する
     echo    --version    バージョンを表示する
 exit /b
@@ -509,7 +547,7 @@ exit /b
     :M_OTHER
         exit /b -2
 
-@rem JST日時(yyyy/M/d HH:mm)からUTC年月日(yyyy/M/d)へ変換する
+@rem JST日時(yyyy/MM/dd HH:mm)からUTC年月日(yyyy/MM/dd HH:mm)へ変換する
 @rem 変数:DTに格納される
 @rem 引数: %1-計算対象日時
 @rem 戻り値 0:変換成功 -1:引数エラー
@@ -556,12 +594,13 @@ exit /b
     )
     del %TEMP%\dt.txt
     set DT=!Y!/!MO!/!D! !H!:!MI!
+    call :DATETIME_ADD_ZERO "%DT%"
 exit /b 0
 
-@rem 日時の0始まりを削除
+@rem 日時が1桁の時に0を付与
 @rem 変数:DTに格納される
-@rem 戻り値 0:変換成功 -1:引数エラー
-:DATETIME_ZERO_DEL
+@rem 戻り値 0:成功 -1:引数エラー
+:DATETIME_ADD_ZERO
     if "%~1" equ "" exit /b -1
     set DT=%~1
     set DT=%DT:/= %
@@ -569,13 +608,25 @@ exit /b 0
     echo !DT! > %TEMP%\dt.txt
     for /f "tokens=1,2,3,4,5" %%a in (%TEMP%\dt.txt) do (
         set Y=%%a
-        set /a MO=1%%b-100
-        set /a D=1%%c-100
-        set /a H=1%%d-100
-        set /a MI=1%%e-100
+        set MO=%%b
+        set DD=%%c
+        set HH=%%d
+        set MI=%%e
     )
     del %TEMP%\dt.txt
-    set DT=!Y!/!MO!/!D! !H!:!MI!
+    if !MO! lss 10 (
+        set MO=0!MO!
+    )
+    if !DD! lss 10 (
+        set DD=0!DD!
+    )
+    if !HH! lss 10 (
+        set HH=0!HH!
+    )
+    if !MI! lss 10 (
+        set MI=0!MI!
+    )
+    set DT=!Y!/!MO!/!DD! !HH!:!MI!
 exit /b 0
 
 @rem アップデート配列に対象名を登録
@@ -688,8 +739,10 @@ exit /b 0
     @rem 文字列の月を数字に変換
     call :CONV_MONTH "%MONTH%"
     set MONTH=%ERRORLEVEL%
-    @rem GitHubのリリース日(yyyy/M/d)を代入
+    @rem GitHubのリリース日(yyyy/MM/dd)を代入
     set GITHUB_DATE=%YEAR%/%MONTH%/%DAY:,=%
+    call :DATETIME_ADD_ZERO "%GITHUB_DATE%"
+    set GITHUB_DATE=%DT%
 exit /b 0
 
 @rem PSDToolkitの更新日時を取得
@@ -700,12 +753,6 @@ exit /b 0
     )
     call :CONV_UTC "%PSDFILE_DATETIME_PRE%"
     set PSDFILE_DATETIME=!DT!
-    echo !PSDFILE_DATETIME! > "%FILE_DIR%\psddatetime.txt"
-
-    set PSDFILE_DATE=
-    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\psddatetime.txt") do (
-        set PSDFILE_DATE=%%i
-    )
 exit /b
 
 @rem PSDToolkit最新バージョン取得
@@ -723,10 +770,10 @@ exit /b
 :PSDTOOLKIT_UPDATE_CHECK
     @rem psdtoolkitの最新tagの日付取得
     call :GITHUB_GET_LATEST_RELEASE_DATE "oov released this "
-    set GITHUB_PSD_DATE=%GITHUB_DATE%
+    set GITHUB_PSD_DATETIME=%GITHUB_DATE%
     @rem PSDToolkitの更新日時を取得
     call :PSDTOOLKIT_GET_DATE
-    if !PSDFILE_DATE! lss !GITHUB_PSD_DATE! (
+    if !PSDFILE_DATETIME! lss !GITHUB_PSD_DATETIME! (
         exit /b 1
     )
 exit /b 0
@@ -748,6 +795,7 @@ exit /b
 
 @rem AviUtl最新バージョンと更新日を取得
 @rem AVIUTL_VERとAVIUTL_DATEに格納
+@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む)
 :AVIUTL_GET_LATEST_VER_DATE
     call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
     %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
@@ -757,27 +805,30 @@ exit /b
         type "%FILE_DIR%\rclist.txt" > "%FILE_DIR%\list.txt"
     )
     set /p LINE=<"%FILE_DIR%\list.txt"
+    if "%LINE%"=="" (
+        exit /b 1
+    )
     echo %LINE% > "%FILE_DIR%\latest.txt"
     for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
         set AVIUTL_VER=%%~ni
         set AVIUTL_DATE=%%j
     )
-exit /b
+    call :DATETIME_ADD_ZERO "%AVIUTL_DATE%"
+    set AVIUTL_DATE=!DT!
+exit /b 0
 
 @rem AviUtlのアップデートチェック
 @rem 戻り値 0:アップデートなし 1:アップデートあり
 :AVIUTL_UPDATE_CHECK
     call :AVIUTL_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ 1 (
+        exit /b 0
+    )
     for %%i in ("%AVIUTL_DIR%\aviutl.exe") do (
         set AVIUTL_EXE_DATE_PRE=%%~ti
     )
-    call :DATETIME_ZERO_DEL "%AVIUTL_EXE_DATE_PRE%"
-    set AVIUTL_EXE_DATE=!DT!
-    echo %AVIUTL_EXE_DATE% > "%FILE_DIR%\aviutldatetime.txt"
-    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\aviutldatetime.txt") do (
-        set AVIUTL_EXE_DATE=%%i
-    )
-    if %AVIUTL_EXE_DATE% lss %AVIUTL_DATE% (
+    set AVIUTL_EXE_DATE=!AVIUTL_EXE_DATE_PRE!
+    if !AVIUTL_EXE_DATE! lss !AVIUTL_DATE! (
         exit /b 1
     )
 exit /b 0
@@ -807,36 +858,45 @@ exit /b 0
         del "%AVIUTL_DIR%"\*.bin
         echo 100%%完了
     )
+    del "%AVIUTL_DIR%"\aviutl.vfp > nul 2>&1
 exit /b
 
 @rem 拡張編集の最新バージョンと更新日を取得
 @rem EXEDIT_VERとEXEDIT_DATEに格納
+@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む)
 :EXEDIT_GET_LATEST_VER_DATE
     call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
     %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
     findstr /I /R /C:"\<exedit[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
+    if %INSTALL_EXEDIT_RC_FLAG% equ 1 (
+        findstr /I /C:"テスト版" "%FILE_DIR%\list.txt" > "%FILE_DIR%\rclist.txt"
+        type "%FILE_DIR%\rclist.txt" > "%FILE_DIR%\list.txt"
+    )
     set /p LINE=<"%FILE_DIR%\list.txt"
+    if "%LINE%"=="" (
+        exit /b 1
+    )
     echo %LINE% > "%FILE_DIR%\latest.txt"
     for /f "usebackq tokens=1,3" %%i in ("%FILE_DIR%\latest.txt") do (
         set EXEDIT_VER=%%~ni
         set EXEDIT_DATE=%%j
     )
-exit /b
+    call :DATETIME_ADD_ZERO "%EXEDIT_DATE%"
+    set EXEDIT_DATE=!DT!
+exit /b 0
 
 @rem 拡張編集のアップデートチェック
 @rem 戻り値 0:アップデートなし 1:アップデートあり
 :EXEDIT_UPDATE_CHECK
     call :EXEDIT_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ 1 (
+        exit /b 0
+    )
     for %%i in ("%AVIUTL_DIR%\plugins\exedit.auf") do (
         set EXEDIT_AUF_DATE_PRE=%%~ti
     )
-    call :DATETIME_ZERO_DEL %EXEDIT_AUF_DATE_PRE%
-    set EXEDIT_AUF_DATE=!DT!
-    echo %EXEDIT_AUF_DATE% > "%FILE_DIR%\exeditdatetime.txt"
-    for /f "usebackq tokens=1" %%i in ("%FILE_DIR%\exeditdatetime.txt") do (
-        set EXEDIT_AUF_DATE=%%i
-    )
-    if %EXEDIT_AUF_DATE% lss %EXEDIT_DATE% (
+    set EXEDIT_AUF_DATE=!EXEDIT_AUF_DATE_PRE!
+    if !EXEDIT_AUF_DATE! lss !EXEDIT_DATE! (
         exit /b 1
     )
 exit /b 0
@@ -849,6 +909,12 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2019/10/22 (v4.1.0)
+@rem     アップデート時にaviutl.vfpを削除するように変更
+@rem     DATE比較がおかしかったのを修正
+@rem     設定ファイルのパラメータを変更
+@rem     テスト版が無い時の動作エラーを修正
+@rem     テスト版拡張編集のインストール/アップデート機能を追加
 @rem 2019/9/22 (v4.0.0)
 @rem     aviutl.exeチェックとコメントをメンテナンス
 @rem     テスト版AviUtlのインストール/アップデートする機能を追加
