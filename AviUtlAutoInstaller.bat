@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=4.1.0
+set SCRIPT_VER=4.1.1
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -279,7 +279,8 @@ call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/VanishP2_V2.zip" "%DL_DIR%\
 call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/LinHal.zip" "%DL_DIR%\LinHal.zip"
 
 @rem PNG出力
-call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
+rem 代わりのプラグインを探し中
+rem call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
 
 
 @rem ティム氏のスクリプトを展開
@@ -296,8 +297,8 @@ set TIM3_DIR=%SCRIPT_DIR%\ティム氏
 %SZEXE% x "%DL_DIR%\LinHal.zip" -aoa -o"%TIM3_DIR%"
 
 @rem yu_noimage_氏のプラグインを展開
-%SZEXE% x "%DL_DIR%\auls_outputpng.zip" -aoa -o"%DL_DIR%"
-@move  "%DL_DIR%\auls_outputpng\*.auf" "%PLUGINS_DIR%"
+@rem %SZEXE% x "%DL_DIR%\auls_outputpng.zip" -aoa -o"%DL_DIR%"
+@rem @move  "%DL_DIR%\auls_outputpng\*.auf" "%PLUGINS_DIR%"
 
 @rem 今までインストールしたプラグイン、スクリプトをaviutl.iniに反映
 call :EXEC_AVIUTL
@@ -909,6 +910,8 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2020/1/26
+@rem     PNG出力プラグインの公開が停止してたため、DLしないように変更
 @rem 2019/10/22 (v4.1.0)
 @rem     アップデート時にaviutl.vfpを削除するように変更
 @rem     DATE比較がおかしかったのを修正
