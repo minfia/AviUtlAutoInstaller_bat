@@ -279,7 +279,8 @@ call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/VanishP2_V2.zip" "%DL_DIR%\
 call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/LinHal.zip" "%DL_DIR%\LinHal.zip"
 
 @rem PNG出力
-call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
+rem 代わりのプラグインを探し中
+rem call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
 
 
 @rem ティム氏のスクリプトを展開
@@ -296,8 +297,8 @@ set TIM3_DIR=%SCRIPT_DIR%\ティム氏
 %SZEXE% x "%DL_DIR%\LinHal.zip" -aoa -o"%TIM3_DIR%"
 
 @rem yu_noimage_氏のプラグインを展開
-%SZEXE% x "%DL_DIR%\auls_outputpng.zip" -aoa -o"%DL_DIR%"
-@move  "%DL_DIR%\auls_outputpng\*.auf" "%PLUGINS_DIR%"
+@rem %SZEXE% x "%DL_DIR%\auls_outputpng.zip" -aoa -o"%DL_DIR%"
+@rem @move  "%DL_DIR%\auls_outputpng\*.auf" "%PLUGINS_DIR%"
 
 @rem 今までインストールしたプラグイン、スクリプトをaviutl.iniに反映
 call :EXEC_AVIUTL
