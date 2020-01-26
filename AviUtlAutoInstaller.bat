@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=4.1.0
+set SCRIPT_VER=4.1.1
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -910,6 +910,8 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2020/1/26
+@rem     PNG出力プラグインの公開が停止してたため、DLしないように変更
 @rem 2019/10/22 (v4.1.0)
 @rem     アップデート時にaviutl.vfpを削除するように変更
 @rem     DATE比較がおかしかったのを修正
