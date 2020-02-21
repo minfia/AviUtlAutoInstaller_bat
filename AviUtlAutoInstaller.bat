@@ -46,7 +46,7 @@ if %ERRORLEVEL% equ 0 (
 )
 
 set DL_RETRY=3
-set X264GUIEX_VER=2.59
+set X264GUIEX_VER=2.63v2
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
 @rem ダウンロード失敗したURL一覧格納配列
 set DL_FAILURE_LIST=
@@ -879,7 +879,7 @@ exit /b 0
 @rem 戻り値 0:成功 -1:ダウンロード失敗 -2:ファイル不足
 :X264GUIEX_INSTALL
     echo x264guiExのダウンロード...
-    call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%" "0"
+    call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1V3HyUDZs0m1SNCtGIpanWkCR9v2aGM0M" "%DL_DIR%\%X264GUIEX_ZIP%" "0"
     if %ERRORLEVEL% neq 0 (
         call :ADD_INSTALL_LOG "x264guiEx download error."
         exit /b -1
