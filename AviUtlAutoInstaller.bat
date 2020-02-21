@@ -358,9 +358,15 @@ exit
     @rem x264guiExのインストール
     call :ADD_INSTALL_LOG "x264guiEx install start."
     call :X264GUIEX_INSTALL
-    if %ERRORLEVEL% neq 0 (
+    if %ERRORLEVEL% equ -1 (
         call :ADD_INSTALL_LOG "x264guiEx install error."
         call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    ) else if %ERRORLEVEL% equ -2 (
+        call :ADD_INSTALL_LOG "x264guiEx install error. (required file)"
+        call :FINISH_SCRIPT_PROCESS "x264guiExの必須ファイルのダウンロードに失敗しました。"
         call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
         rmdir /s /q "%AVIUTL_DIR%"
         exit
@@ -870,7 +876,7 @@ exit /b 0
 exit /b 0
 
 @rem x264guiExのインストール
-@rem 戻り値 0:成功 -1:失敗
+@rem 戻り値 0:成功 -1:ダウンロード失敗 -2:ファイル不足
 :X264GUIEX_INSTALL
     echo x264guiExのダウンロード...
     call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%" "0"
@@ -879,10 +885,46 @@ exit /b 0
         exit /b -1
     )
     echo x264guiExのダウンロード完了
-
     %SZEXE% x "%DL_DIR%\%X264GUIEX_ZIP%" -aoa -o"%TEMP%"
-    "%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
+
+    for /l %%a in (0,1,%DL_RETRY%) do (
+        if %%a gtr 0 (
+            echo Retry %%a/%DL_RETRY%
+        )
+        "%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
+        call :X264_REQUIRED_CHECK_FILE
+        if !ERRORLEVEL! equ 0 (
+            rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+            exit /b 0
+        )
+    )
     rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+exit /b -2
+
+@rem x264GUIExでインストールされる必須ファイルに不足が無いかチェックする
+@rem 戻り値 0:不足なし -1:不足あり
+:X264_REQUIRED_CHECK_FILE
+    set REQUIRED_FILE_LIST_CNT=-1
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=ASL.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=CoreAudioToolbox.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=CoreFoundation.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libdispatch.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuin.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuuc.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=objc.dll
+
+    for /l %%a in (0,1,!REQUIRED_FILE_LIST_CNT!) do (
+        if not exist "%AVIUTL_DIR%\exe_files\!REQUIRED_FILE_LIST[%%a]!" (
+            exit /b -1
+        )
+    )
 
 exit /b 0
 
