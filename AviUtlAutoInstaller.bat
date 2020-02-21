@@ -227,7 +227,7 @@ exit
     set INSTALL_DIR=%INSTALL_DIR_PRE%
     set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
-    set LSMASH_VER=r935-2
+    set LSMASH_VER=r940
     set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
     @rem çÏã∆ä¬ã´ç\íz
