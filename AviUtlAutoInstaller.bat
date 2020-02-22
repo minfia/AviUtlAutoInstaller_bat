@@ -45,9 +45,18 @@ if %ERRORLEVEL% equ 0 (
     exit
 )
 
+@rem 定数設定
+@rem ダウンロードリトライ回数
 set DL_RETRY=3
+
+@rem L-SMASH Works
+set LSMASH_VER=r940
+set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
+
+@rem x264guiEx(バージョン変更の際は、URLも変更すること)
 set X264GUIEX_VER=2.63v2
 set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
+
 @rem ダウンロード失敗したURL一覧格納配列
 set DL_FAILURE_LIST=
 @rem UPDATE_LISTの要素数
@@ -226,9 +235,6 @@ exit
     )
     set INSTALL_DIR=%INSTALL_DIR_PRE%
     set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
-
-    set LSMASH_VER=r940
-    set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
     @rem 作業環境構築
     call :WORKING_ENV_SETUP
@@ -501,7 +507,6 @@ exit /b
     @rem 後始末
     call :CLEANUP
 exit /b
-
 
 @rem インストール/アップデート環境構築
 @rem 戻り値 0:成功 -1:失敗
