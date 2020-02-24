@@ -1003,7 +1003,7 @@ exit /b
             echo Retry %%a/%DL_RETRY%
         )
         "%TEMP%\%~3\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
-        call :APPLEDLL_REQUIRED_CHECK_FILE
+        call :ENCODER_REQUIRED_CHECK_FILE
         if !ERRORLEVEL! equ 0 (
             rmdir /s /q %TEMP%\%~3
             exit /b 0
@@ -1012,9 +1012,9 @@ exit /b
     rmdir /s /q %TEMP%\%~3
 exit /b -2
 
-@rem appledllのインストールされる必須ファイルに不足が無いかチェックする
+@rem エンコード必須ファイルに不足が無いかチェックする
 @rem 戻り値 0:不足なし -1:不足あり
-:APPLEDLL_REQUIRED_CHECK_FILE
+:ENCODER_REQUIRED_CHECK_FILE
     set REQUIRED_FILE_LIST_CNT=-1
     set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
     set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=ASL.dll
@@ -1023,6 +1023,8 @@ exit /b -2
     set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
     set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=CoreFoundation.dll
     set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=icudt*.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
     set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libdispatch.dll
     set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
     set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuin.dll
@@ -1030,6 +1032,12 @@ exit /b -2
     set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuuc.dll
     set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
     set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=objc.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=muxer*.exe
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=remuxer*.exe
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=timelineeditor*.exe
 
     for /l %%a in (0,1,!REQUIRED_FILE_LIST_CNT!) do (
         if not exist "%AVIUTL_DIR%\exe_files\!REQUIRED_FILE_LIST[%%a]!" (
