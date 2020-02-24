@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=4.1.1
+set SCRIPT_VER=5.0.0
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -1299,6 +1299,12 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2020/2/24
+@rem     QSC, NVEnc, VCEEncのインストールオプションを追加
+@rem     L-SMASH Worksのバージョンをr935-2からr940に変更
+@rem     x264guiExのバージョンを2.59から2.63v2に変更
+@rem     エンコーダでDLされるファイルチェックを追加
+@rem     DL失敗時処理とその周辺処理を変更
 @rem 2020/1/26
 @rem     PNG出力プラグインの公開が停止してたため、DLしないように変更
 @rem 2019/10/22 (v4.1.0)
