@@ -55,7 +55,19 @@ set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
 @rem x264guiEx(バージョン変更の際は、URLも変更すること)
 set X264GUIEX_VER=2.63v2
-set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
+set X264GUIEX_ZIP_FILENAME=x264guiEx_%X264GUIEX_VER%
+
+@rem QSVEncC(バージョン変更の際は、URLも変更すること)
+set QSVENCC_VER=3.31
+set QSVENCC_ZIP_FILENAME=QSVEnc_%QSVENCC_VER%
+
+@rem NVEnc(バージョン変更の際は、URLも変更すること)
+set NVENC_VER=4.65
+set NVENC_ZIP_FILENAME=NVEnc_%NVENC_VER%
+
+@rem VCEEnc(バージョン変更の際は、URLも変更すること)
+set VCEENC_VER=5.02
+set VCEENC_ZIP_FILENAME=VCEEnc_%VCEENC_VER%
 
 @rem ダウンロード失敗したURL一覧格納配列
 set DL_FAILURE_LIST=
@@ -69,6 +81,14 @@ set SEL_UPDATE=0
 set INSTALL_AVIUTL_RC_FLAG=0
 @rem テスト版拡張変数インストールフラグ
 set INSTALL_EXEDIT_RC_FLAG=0
+
+@rem エンコードタイプ
+@rem QSV選択フラグ
+set INSTALL_QSV_ENC=0
+@rem NVEnc選択フラグ
+set INSTALL_NV_ENC=0
+@rem VCEEnc選択フラグ
+set INSTALL_VCE_ENC=0
 
 @rem コマンドラインオプション処理
 :OPTION
@@ -85,7 +105,13 @@ set INSTALL_EXEDIT_RC_FLAG=0
                 goto :HELP
             )
             shift /1
-        )else if "%1"=="--help" (
+        ) else if "%1"=="--qsv" (
+            set INSTALL_QSV_ENC=1
+        ) else if "%1"=="--nvenc" (
+            set INSTALL_NV_ENC=1
+        ) else if "%1"=="--vceenc" (
+            set INSTALL_VCE_ENC=1
+        ) else if "%1"=="--help" (
             goto :HELP
         ) else if "%1"=="--version" (
             echo version: %SCRIPT_VER%
@@ -210,7 +236,17 @@ if %ERRORLEVEL% equ 0 (
             call :ADD_INSTALL_LOG "!UPDATE_LIST[%%i]! update failure."
         )
     )
-    call :X264GUIEX_INSTALL
+
+    if exist "%AVIUTL_DIR%\exe_files\QSVEncC" (
+        set INSTALL_QSV_ENC=1
+    )
+    if exist "%AVIUTL_DIR%\exe_files\NVEncC" (
+        set INSTALL_NV_ENC=1
+    )
+    if exist "%AVIUTL_DIR%\exe_files\VCEEncC" (
+        set INSTALL_VCE_ENC=1
+    )
+    call :ENCODERS_INSTALL
 
     call :FINISH_SCRIPT_PROCESS ""
     call :SHOW_MSG "アップデートが完了しました" vbInformation "情報" "modal"
@@ -361,24 +397,8 @@ exit
         call :ADD_INSTALL_LOG "L-SMASH Works install done."
     )
 
-    @rem x264guiExのインストール
-    call :ADD_INSTALL_LOG "x264guiEx install start."
-    call :X264GUIEX_INSTALL
-    if %ERRORLEVEL% equ -1 (
-        call :ADD_INSTALL_LOG "x264guiEx install error."
-        call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
-        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
-        rmdir /s /q "%AVIUTL_DIR%"
-        exit
-    ) else if %ERRORLEVEL% equ -2 (
-        call :ADD_INSTALL_LOG "x264guiEx install error. (required file)"
-        call :FINISH_SCRIPT_PROCESS "x264guiExの必須ファイルのダウンロードに失敗しました。"
-        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
-        rmdir /s /q "%AVIUTL_DIR%"
-        exit
-    )
-    call :ADD_INSTALL_LOG "x264guiEx install done."
-
+    @rem エンコーダのインストール
+    call :ENCODERS_INSTALL
 
     @rem 劇場向け環境構築
     @rem 劇場向けファイルのDL
@@ -476,6 +496,9 @@ exit
     echo    --rc         テスト版AviUtlと拡張編集をインストールする(存在するもののみ)
     echo         aviutl  テスト版AviUtlをインストールする(存在する場合)
     echo         exedit  テスト版拡張編集をインストールする(存在する場合)
+    echo    --qsv        QSVEncCをインストールする(Intel GPUエンコード)
+    echo    --nvenc      NVEncをインストールする(Nvidia GPUエンコード)
+    echo    --vceenc     VCEEncをインストールする(AMD GPUエンコード)
     echo    --help       ヘルプを表示する
     echo    --version    バージョンを表示する
 exit /b
@@ -880,35 +903,118 @@ exit /b 0
     set HTOX="%DL_DIR%\HtoX32c.exe"
 exit /b 0
 
-@rem x264guiExのインストール
+@rem エンコーダのインストールをする
+@rem x264guiExは強制だが、QSV,NV,VCEは選択
+:ENCODERS_INSTALL
+    @rem x264guiExのインストール
+    call :ADD_INSTALL_LOG "x264guiEx install start."
+    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=1V3HyUDZs0m1SNCtGIpanWkCR9v2aGM0M" "%X264GUIEX_ZIP_FILENAME%"
+    if %ERRORLEVEL% equ -1 (
+        call :ADD_INSTALL_LOG "x264guiEx install error."
+        call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    ) else if %ERRORLEVEL% equ -2 (
+        call :ADD_INSTALL_LOG "x264guiEx install error. (required file)"
+        call :FINISH_SCRIPT_PROCESS "x264guiExの必須ファイルのダウンロードに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+    call :ADD_INSTALL_LOG "x264guiEx install done."
+
+    @rem QSVEncCのインストール
+    if %INSTALL_QSV_ENC% equ 1 (
+        call :ADD_INSTALL_LOG "QSVEncC install start."
+        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=18wsDoL8GL4P9fu016wmOjHFKo7kerLHX" "%QSVENCC_ZIP_FILENAME%"
+        if %ERRORLEVEL% equ -1 (
+          call :ADD_INSTALL_LOG "QSVEncC install error."
+            call :FINISH_SCRIPT_PROCESS "QSVEncCのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        ) else if %ERRORLEVEL% equ -2 (
+            call :ADD_INSTALL_LOG "QSVEncC install error. (required file)"
+            call :FINISH_SCRIPT_PROCESS "QSVEncCの必須ファイルのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+        call :ADD_INSTALL_LOG "QSVEncC install done."
+    )
+
+    @rem NVEncのインストール
+    if %INSTALL_NV_ENC% equ 1 (
+        call :ADD_INSTALL_LOG "NVEnc install start."
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1xzPMKYnTqkOlnUHmKk1r0I5zGmgYp3ls" "%NVENC_ZIP_FILENAME%"
+        if %ERRORLEVEL% equ -1 (
+          call :ADD_INSTALL_LOG "NVEnc install error."
+            call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        ) else if %ERRORLEVEL% equ -2 (
+            call :ADD_INSTALL_LOG "NVEnc install error. (required file)"
+            call :FINISH_SCRIPT_PROCESS "NVEncの必須ファイルのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+        call :ADD_INSTALL_LOG "NVEnc install done."
+    )
+
+    @rem VCEEncのインストール
+    if %INSTALL_VCE_ENC% equ 1 (
+        call :ADD_INSTALL_LOG "VCEEnc install start."
+        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1yxCre3AP_QuNv_sWe2V7ZItZqbFI5Ehn" "%VCEENC_ZIP_FILENAME%"
+        if %ERRORLEVEL% equ -1 (
+          call :ADD_INSTALL_LOG "VCEEnc install error."
+            call :FINISH_SCRIPT_PROCESS "VCEEncのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        ) else if %ERRORLEVEL% equ -2 (
+            call :ADD_INSTALL_LOG "VCEEnc install error. (required file)"
+            call :FINISH_SCRIPT_PROCESS "VCEEncの必須ファイルのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+        call :ADD_INSTALL_LOG "VCEEnc install done."
+    )
+exit /b
+
+@rem 選択されたエンコーダをインストールする
+@rem 引数: %1-エンコーダ名 %2-ダウンロードURL %3-ダウンロード保存先
 @rem 戻り値 0:成功 -1:ダウンロード失敗 -2:ファイル不足
-:X264GUIEX_INSTALL
-    echo x264guiExのダウンロード...
-    call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1V3HyUDZs0m1SNCtGIpanWkCR9v2aGM0M" "%DL_DIR%\%X264GUIEX_ZIP%" "0"
+:ENCODER_INSTALL
+    echo %~1のダウンロード...
+    call :FILE_DOWNLOAD %2 "%DL_DIR%\%~3.7z" "0"
     if %ERRORLEVEL% neq 0 (
-        call :ADD_INSTALL_LOG "x264guiEx download error."
+        call :ADD_INSTALL_LOG "%~1 download error."
         exit /b -1
     )
-    echo x264guiExのダウンロード完了
-    %SZEXE% x "%DL_DIR%\%X264GUIEX_ZIP%" -aoa -o"%TEMP%"
+    echo %~1のダウンロード完了
+    %SZEXE% x "%DL_DIR%\%~3.7z" -aoa -o"%TEMP%"
 
     for /l %%a in (0,1,%DL_RETRY%) do (
         if %%a gtr 0 (
             echo Retry %%a/%DL_RETRY%
         )
-        "%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
-        call :X264_REQUIRED_CHECK_FILE
+        "%TEMP%\%~3\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
+        call :APPLEDLL_REQUIRED_CHECK_FILE
         if !ERRORLEVEL! equ 0 (
-            rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+            rmdir /s /q %TEMP%\%~3
             exit /b 0
         )
     )
-    rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+    rmdir /s /q %TEMP%\%~3
 exit /b -2
 
-@rem x264GUIExでインストールされる必須ファイルに不足が無いかチェックする
+@rem appledllのインストールされる必須ファイルに不足が無いかチェックする
 @rem 戻り値 0:不足なし -1:不足あり
-:X264_REQUIRED_CHECK_FILE
+:APPLEDLL_REQUIRED_CHECK_FILE
     set REQUIRED_FILE_LIST_CNT=-1
     set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
     set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=ASL.dll
@@ -930,7 +1036,6 @@ exit /b -2
             exit /b -1
         )
     )
-
 exit /b 0
 
 @rem GitHubの最新リリースを取得
