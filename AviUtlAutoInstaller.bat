@@ -573,6 +573,12 @@ exit /b
         set SVZIP_DIR=!AVIUTL_DIR!\DL_TEMP\7z
         mkdir "!DL_DIR!" "!FILE_DIR!" "!SVZIP_DIR!"
     )
+    
+    rmdir /s /q %TEMP%\%X264GUIEX_ZIP_FILENAME% > nul 2>&1
+    rmdir /s /q %TEMP%\%QSVENCC_ZIP_FILENAME% > nul 2>&1
+    rmdir /s /q %TEMP%\%NVENC_ZIP_FILENAME% > nul 2>&1
+    rmdir /s /q %TEMP%\%VCEENC_ZIP_FILENAME% > nul 2>&1
+    
     call :SZ_SETUP
     if %ERRORLEVEL% neq 0 (
         exit /b -1
@@ -1300,6 +1306,7 @@ exit /b
 
 @rem リリースノート
 @rem 2020/2/24
+@rem     環境構築時にTEMPに各エンコーダのインストーラが残っていた時に削除するように変更
 @rem     QSC, NVEnc, VCEEncのインストールオプションを追加
 @rem     L-SMASH Worksのバージョンをr935-2からr940に変更
 @rem     x264guiExのバージョンを2.59から2.63v2に変更
