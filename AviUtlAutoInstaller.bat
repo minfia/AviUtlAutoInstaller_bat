@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=4.1.1
+set SCRIPT_VER=5.0.0
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -45,9 +45,34 @@ if %ERRORLEVEL% equ 0 (
     exit
 )
 
+@rem 定数設定
+@rem ダウンロードリトライ回数
 set DL_RETRY=3
-set X264GUIEX_VER=2.59
-set X264GUIEX_ZIP=x264guiEx_%X264GUIEX_VER%.7z
+
+@rem L-SMASH Works
+set LSMASH_VER=r940
+set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
+
+@rem x264guiEx(バージョン変更の際は、URLも変更すること)
+set X264GUIEX_VER=2.63v2
+set X264GUIEX_ZIP_FILENAME=x264guiEx_%X264GUIEX_VER%
+
+@rem QSVEncC(バージョン変更の際は、URLも変更すること)
+set QSVENCC_VER=3.31
+set QSVENCC_ZIP_FILENAME=QSVEnc_%QSVENCC_VER%
+
+@rem NVEnc(バージョン変更の際は、URLも変更すること)
+set NVENC_VER=4.65
+set NVENC_ZIP_FILENAME=NVEnc_%NVENC_VER%
+
+@rem VCEEnc(バージョン変更の際は、URLも変更すること)
+set VCEENC_VER=5.02
+set VCEENC_ZIP_FILENAME=VCEEnc_%VCEENC_VER%
+
+@rem ダウンロード失敗したURL一覧格納配列
+set DL_FAILURE_LIST=
+@rem UPDATE_LISTの要素数
+set DL_FAILURE_LIST_CNT=-1
 
 @rem バッチファイル実行時の処理選択
 @rem 0:インストール 1:アップデート
@@ -56,6 +81,14 @@ set SEL_UPDATE=0
 set INSTALL_AVIUTL_RC_FLAG=0
 @rem テスト版拡張変数インストールフラグ
 set INSTALL_EXEDIT_RC_FLAG=0
+
+@rem エンコードタイプ
+@rem QSV選択フラグ
+set INSTALL_QSV_ENC=0
+@rem NVEnc選択フラグ
+set INSTALL_NV_ENC=0
+@rem VCEEnc選択フラグ
+set INSTALL_VCE_ENC=0
 
 @rem コマンドラインオプション処理
 :OPTION
@@ -72,7 +105,13 @@ set INSTALL_EXEDIT_RC_FLAG=0
                 goto :HELP
             )
             shift /1
-        )else if "%1"=="--help" (
+        ) else if "%1"=="--qsv" (
+            set INSTALL_QSV_ENC=1
+        ) else if "%1"=="--nvenc" (
+            set INSTALL_NV_ENC=1
+        ) else if "%1"=="--vceenc" (
+            set INSTALL_VCE_ENC=1
+        ) else if "%1"=="--help" (
             goto :HELP
         ) else if "%1"=="--version" (
             echo version: %SCRIPT_VER%
@@ -84,229 +123,366 @@ set INSTALL_EXEDIT_RC_FLAG=0
         goto :OPTION
     )
 
+set CURRENT_DIR="""%~dp0"""
+set SETUP_LOGFILE=setup.log
+type nul > %CURRENT_DIR%\%SETUP_LOGFILE%
 
+@rem インストール/アップデート判定
 where aviutl.exe > nul 2>&1
 if %ERRORLEVEL% equ 0 (
     set SEL_UPDATE=1
+    call :ADD_INSTALL_LOG "select update process."
     goto :UPDATE
 ) else (
+    call :ADD_INSTALL_LOG "select install process."
     goto :INSATALL
 )
 
 
 @rem アップデート処理
 :UPDATE
-@rem アップデート一覧格納配列
-set UPDATE_LIST=
-@rem アップデート実行ルーチン一覧格納配列
-set UPDATE_ROUTINE_LIST=
-@rem UPDATE_LISTの要素数
-set UPDATE_LIST_CNT=-1
+    @rem アップデート一覧格納配列
+    set UPDATE_LIST=
+    @rem アップデート実行ルーチン一覧格納配列
+    set UPDATE_ROUTINE_LIST=
+    @rem UPDATE_LISTの要素数
+    set UPDATE_LIST_CNT=-1
 
-@rem ディレクトリの設定
-@rem カレントディレクトリ
-set INSTALL_DIR_PRE=%~dp0
-set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
-set INSTALL_DIR=%INSTALL_DIR_PRE%
-set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
+    @rem ディレクトリの設定
+    @rem カレントディレクトリ
+    set INSTALL_DIR_PRE=%~dp0
+    set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
+    set INSTALL_DIR=%INSTALL_DIR_PRE%
+    set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
-@rem 作業環境構築
-call :WORKING_ENV_SETUP
-
-@rem AviUtlのアップデートチェック
-call :AVIUTL_UPDATE_CHECK
-call :UPDATE_NAME_REGIST %ERRORLEVEL% "AviUtl" ":AVIUTL_INSTALL"
-
-@rem 拡張編集のアップデートチェック
-call :EXEDIT_UPDATE_CHECK
-call :UPDATE_NAME_REGIST %ERRORLEVEL% "拡張編集" ":EXEDIT_INSTALL"
-
-@rem PSDToolkitのアップデート
-call :PSDTOOLKIT_GET_LATEST_VER
-call :PSDTOOLKIT_UPDATE_CHECK
-call :UPDATE_NAME_REGIST %ERRORLEVEL% "PSDToolkit" ":PSDTOOLKIT_INSTALL"
-
-if %UPDATE_LIST_CNT% lss 0 (
-    call :CLEANUP
-    call :SHOW_MSG "アップデートはありません" vbInformation "情報" "modal"
-    exit
-) else (
-    echo アップデート対象は以下になります
-    for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
-        echo ・!UPDATE_LIST[%%i]!
-    )
-    @rem アップデート確認
-    set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
-    if /i not !UPDATE_SUCCESS!==Y (
-        call :CLEANUP
-        call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
+    @rem 作業環境構築
+    call :WORKING_ENV_SETUP
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "working environment setup failure."
+        call :FINISH_SCRIPT_PROCESS "環境構築に失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
         exit
     )
-)
 
-for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
-    call !UPDATE_ROUTINE_LIST[%%i]!
-)
-call :X264GUIEX_INSTALL
+    @rem AviUtlのアップデートチェック
+    call :ADD_INSTALL_LOG "AviUtl update check start."
+    call :AVIUTL_UPDATE_CHECK
+    if %ERRORLEVEL% equ -1 (
+        call :ADD_INSTALL_LOG "AviUtl update check failure."
+        call :FINISH_SCRIPT_PROCESS "AviUtlのアップデートチェックに失敗しました。"
+        call :SHOW_MSG "アップデートに失敗しました"
+        call :CLEANUP
+        exit
+    )
+    call :UPDATE_NAME_REGIST %ERRORLEVEL% "AviUtl" ":AVIUTL_INSTALL"
+    call :ADD_INSTALL_LOG "AviUtl update check done."
 
-call :CLEANUP
-call :SHOW_MSG "アップデートが完了しました" vbInformation "情報" "modal"
+    @rem 拡張編集のアップデートチェック
+    call :ADD_INSTALL_LOG "ExEdit update check start."
+    call :EXEDIT_UPDATE_CHECK
+    if %ERRORLEVEL% equ -1 (
+        call :ADD_INSTALL_LOG "ExEdit update check failure."
+        call :FINISH_SCRIPT_PROCESS "拡張編集のアップデートチェックに失敗しました。"
+        call :SHOW_MSG "アップデートに失敗しました"
+        call :CLEANUP
+        exit
+    )
+    call :UPDATE_NAME_REGIST %ERRORLEVEL% "拡張編集" ":EXEDIT_INSTALL"
+
+    @rem PSDToolkitのアップデート
+    call :ADD_INSTALL_LOG "psdtoolkit update check start."
+    call :ADD_INSTALL_LOG "psdtoolkit version get start."
+    call :PSDTOOLKIT_GET_LATEST_VER
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "psdtoolkit version get failure."
+        call :FINISH_SCRIPT_PROCESS "psdtoolkitのバージョン取得に失敗しました。"
+        call :SHOW_MSG "アップデートに失敗しました"
+        call :CLEANUP
+        exit
+    )
+    call :PSDTOOLKIT_UPDATE_CHECK
+    if %ERRORLEVEL% equ -1 (
+        call :ADD_INSTALL_LOG "psdtoolkit update check failure."
+        call :FINISH_SCRIPT_PROCESS "psdtoolkitのアップデートチェックに失敗しました。"
+        call :SHOW_MSG "アップデートに失敗しました"
+        call :CLEANUP
+        exit
+    )
+    call :UPDATE_NAME_REGIST %ERRORLEVEL% "PSDToolkit" ":PSDTOOLKIT_INSTALL"
+
+    if %UPDATE_LIST_CNT% lss 0 (
+        call :CLEANUP
+        call :SHOW_MSG "アップデートはありません" vbInformation "情報" "modal"
+        exit
+    ) else (
+        echo アップデート対象は以下になります
+        for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
+            echo ・!UPDATE_LIST[%%i]!
+        )
+        @rem アップデート確認
+        set /p UPDATE_SUCCESS="アップデートを行いますか？(Y/N)："
+        if /i not !UPDATE_SUCCESS!==Y (
+            call :CLEANUP
+            call :SHOW_MSG "アップデートを中止しました" vbInformation "情報" "modal"
+            exit
+        )
+    )
+
+    for /l %%i in (0,1,%UPDATE_LIST_CNT%) do (
+        call :ADD_INSTALL_LOG "!UPDATE_LIST[%%i]! update start."
+        call !UPDATE_ROUTINE_LIST[%%i]!
+        if %ERRORLEVEL% neq 0 (
+            call :ADD_INSTALL_LOG "!UPDATE_LIST[%%i]! update failure."
+        )
+    )
+
+    if exist "%AVIUTL_DIR%\exe_files\QSVEncC" (
+        set INSTALL_QSV_ENC=1
+    )
+    if exist "%AVIUTL_DIR%\exe_files\NVEncC" (
+        set INSTALL_NV_ENC=1
+    )
+    if exist "%AVIUTL_DIR%\exe_files\VCEEncC" (
+        set INSTALL_VCE_ENC=1
+    )
+    call :ENCODERS_INSTALL
+
+    call :FINISH_SCRIPT_PROCESS ""
+    call :SHOW_MSG "アップデートが完了しました" vbInformation "情報" "modal"
+    @del %CURRENT_DIR%\%SETUP_LOGFILE% > nul 2>&1
 
 exit
 
 
 @rem インストール処理
 :INSATALL
-echo script version %SCRIPT_VER%
-echo これはAviUtlの環境を構築するプログラムです。
-echo また、劇場向けの構成となります。
-echo AviUtlのインストール先をフルパスで指定してください。
-echo また、パスの最後に"\"を付けないで下さい、うまくいきません。
-echo バッチファイルと同じ場所にインストールする場合はENTERを押してください。
-set /P INSTALL_DIR_PRE="インストール先："
+    echo script version %SCRIPT_VER%
+    echo これはAviUtlの環境を構築するプログラムです。
+    echo また、劇場向けの構成となります。
+    echo AviUtlのインストール先をフルパスで指定してください。
+    echo また、パスの最後に"\"を付けないで下さい、うまくいきません。
+    echo バッチファイルと同じ場所にインストールする場合はENTERを押してください。
+    set /P INSTALL_DIR_PRE="インストール先："
 
-if "%INSTALL_DIR_PRE%"=="" (
-set INSTALL_DIR_PRE=%~dp0
-set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
-)
-set INSTALL_DIR=%INSTALL_DIR_PRE%
-set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
+    if "%INSTALL_DIR_PRE%"=="" (
+    set INSTALL_DIR_PRE=%~dp0
+    set INSTALL_DIR_PRE=!INSTALL_DIR_PRE:~0,-1!
+    )
+    set INSTALL_DIR=%INSTALL_DIR_PRE%
+    set INSTALL_DIR_PRE="""%INSTALL_DIR_PRE%"""
 
-set LSMASH_VER=r935-2
-set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
-
-@rem 作業環境構築
-call :WORKING_ENV_SETUP
-
-echo AviUtlのインストール
-call :AVIUTL_GET_LATEST_VER_DATE
-if %ERRORLEVEL% equ 1 (
-    if %INSTALL_EXEDIT_RC_FLAG% equ 1 (
-        @rem テスト版拡張編集のインストールも行う場合
-        set INSTALL_AVIUTL_RC_FLAG=0
-        call :AVIUTL_GET_LATEST_VER_DATE
-        set INSTALL_AVIUTL_RC_FLAG=1
-    ) else (
-        call :SHOW_MSG "テスト版AviUtlが見つかりませんでした。" vbCritical "エラー" "modal"
+    @rem 作業環境構築
+    call :WORKING_ENV_SETUP
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "working environment setup failure."
+        call :FINISH_SCRIPT_PROCESS "環境構築に失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
         rmdir /s /q "%AVIUTL_DIR%"
         exit
     )
-)
-call :AVIUTL_INSTALL
 
-@rem AviUtlの設定ファイルを生成する
-call :EXEC_AVIUTL
-timeout /t 3 /nobreak > nul
-:SEARCH_INI
-    for %%a in (aviutl.ini) do @set INI_FILE=%%a
-    if /i not !INI_FILE!==aviutl.ini (
-        goto SEARCH_INI
-    )
-
-@rem aviutlの設定ファイルを編集
-@rem 変更内容
-@rem 最大画像サイズ(1280x720 -> 2200x1200)
-@rem キャッシュサイズ(256 -> 512)
-@rem リサイズ解像度リスト(1920x1080を追加)
-@rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
-@rem 編集ファイルが閉じられるときに確認ダイアログを表示する(無効 -> 有効)
-call :FILE_SEARCH_STR "%AVIUTL_DIR%\aviutl.ini" "[system]"
-set SYSTEM_POS=%ERRORLEVEL%
-call :FILE_LINE_CNT "%AVIUTL_DIR%\aviutl.ini"
-set LINE=%ERRORLEVEL%
-set /a TAILE=LINE-SYSTEM_POS
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first %SYSTEM_POS% | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
-powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`nsharecache=512^
-`r`nmoveA=5`r`nmoveB=30`r`nmoveC=899`r`nmoveD=8991`r`nsaveunitsize=4096`r`ncompprofile=1`r`nplugincache=1^
-`r`nstartframe=1`r`nshiftselect=1`r`nyuy2mode=0`r`nmovieplaymain=1`r`nvfplugin=1`r`nyuy2limit=0`r`neditresume=0`r`nfpsnoconvert=0^
-`r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=1^
-`r`nprojectonfig=0`r`nwindowsnap=0`r`ndragdropactive=1`r`ntrackbarclick=1`r`ndefaultsavefile=%%p`r`nfinishsound=^
-`r`nresizelist=1920x1080`,1280x720`,640x480`,352x240`,320x240^
-`r`nfpslist=*`,30000/1001`,24000/1001`,60000/1001`,60`,50`,30`,25`,24`,20`,15`,12`,10`,8`,6`,5`,4`,3`,2`,1^
-`r`nsse=1`r`nsse2=1" | Set-Content -en string \"%AVIUTL_DIR%\A-12.bin\""
-powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last %TAILE% | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
-copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
-del "%AVIUTL_DIR%"\*.bin
-
-echo 拡張編集のインストール
-call :EXEDIT_GET_LATEST_VER_DATE
-if %ERRORLEVEL% equ 1 (
-    if %INSTALL_AVIUTL_RC_FLAG% equ 1 (
-        @rem テスト版AviUtlのインストールも行う場合
-        set INSTALL_EXEDIT_RC_FLAG=0
-        call :EXEDIT_GET_LATEST_VER_DATE
-    ) else (
-        call :SHOW_MSG "テスト版拡張編集が見つかりませんでした。" vbCritical "エラー" "modal"
+    echo AviUtlのインストール
+    call :ADD_INSTALL_LOG "AviUtl install process start."
+    call :ADD_INSTALL_LOG "AviUtl version get start."
+    call :AVIUTL_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ 1 (
+        if %INSTALL_EXEDIT_RC_FLAG% equ 1 (
+            @rem テスト版拡張編集のインストールも行う場合
+            set INSTALL_AVIUTL_RC_FLAG=0
+            call :AVIUTL_GET_LATEST_VER_DATE
+            set INSTALL_AVIUTL_RC_FLAG=1
+        ) else (
+            call :SHOW_MSG "テスト版AviUtlが見つかりませんでした。" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+    ) else if %ERRORLEVEL% equ -1 (
+        call :ADD_INSTALL_LOG "AviUtl version get failure."
+        call :FINISH_SCRIPT_PROCESS ""
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
         rmdir /s /q "%AVIUTL_DIR%"
         exit
     )
-)
-call :EXEDIT_INSTALL
+    call :ADD_INSTALL_LOG "AviUtl install start."
+    call :AVIUTL_INSTALL
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "AviUtl install failure."
+        call :FINISH_SCRIPT_PROCESS "AviUtlのダウンロードに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+    call :ADD_INSTALL_LOG "AviUtl install process done."
 
-echo L-SMASHのダウンロード...
-call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
-echo L-SMASHのダウンロード完了
+    @rem AviUtlの設定ファイルを生成する
+    call :ADD_INSTALL_LOG "AviUtl ini file generate."
+    call :EXEC_AVIUTL
+    timeout /t 3 /nobreak > nul
+    @rem iniファイルが生成されるまで待つ
+    :SEARCH_INI
+        for %%a in (aviutl.ini) do @set INI_FILE=%%a
+        if /i not !INI_FILE!==aviutl.ini (
+            goto SEARCH_INI
+        )
+    call :ADD_INSTALL_LOG "ini file generated."
 
-@rem プラグインなどを展開
-%SZEXE% x "%DL_DIR%\%LSMASH_ZIP%" -aoa -o"%DL_DIR%"
-@move "%DL_DIR%\lw*.*" "%PLUGINS_DIR%"
-call :X264GUIEX_INSTALL
+    @rem aviutlの設定ファイルを編集
+    @rem 変更内容
+    @rem 最大画像サイズ(1280x720 -> 2200x1200)
+    @rem キャッシュサイズ(256 -> 512)
+    @rem リサイズ解像度リスト(1920x1080を追加)
+    @rem 再生ウィンドウをメインウィンドウに表示する(無効 -> 有効)
+    @rem 編集ファイルが閉じられるときに確認ダイアログを表示する(無効 -> 有効)
+    call :FILE_SEARCH_STR "%AVIUTL_DIR%\aviutl.ini" "[system]"
+    set SYSTEM_POS=%ERRORLEVEL%
+    call :FILE_LINE_CNT "%AVIUTL_DIR%\aviutl.ini"
+    set LINE=%ERRORLEVEL%
+    set /a TAILE=LINE-SYSTEM_POS
+    powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -first %SYSTEM_POS% | Set-Content -en string \"%AVIUTL_DIR%\A-1.bin\""
+    powershell -Command "echo "width=2200`r`nheight=1200`r`nframe=320000`r`nsharecache=512^
+    `r`nmoveA=5`r`nmoveB=30`r`nmoveC=899`r`nmoveD=8991`r`nsaveunitsize=4096`r`ncompprofile=1`r`nplugincache=1^
+    `r`nstartframe=1`r`nshiftselect=1`r`nyuy2mode=0`r`nmovieplaymain=1`r`nvfplugin=1`r`nyuy2limit=0`r`neditresume=0`r`nfpsnoconvert=0^
+    `r`ntempconfig=0`r`nload30fps=0`r`nloadfpsadjust=0`r`noverwritecheck=0`r`ndragdropdialog=0`r`nopenprojectaup=1`r`nclosedialog=1^
+    `r`nprojectonfig=0`r`nwindowsnap=0`r`ndragdropactive=1`r`ntrackbarclick=1`r`ndefaultsavefile=%%p`r`nfinishsound=^
+    `r`nresizelist=1920x1080`,1280x720`,640x480`,352x240`,320x240^
+    `r`nfpslist=*`,30000/1001`,24000/1001`,60000/1001`,60`,50`,30`,25`,24`,20`,15`,12`,10`,8`,6`,5`,4`,3`,2`,1^
+    `r`nsse=1`r`nsse2=1" | Set-Content -en string \"%AVIUTL_DIR%\A-12.bin\""
+    powershell -Command "Get-Content -en string \"%AVIUTL_DIR%\aviutl.ini\" | Select-Object -last %TAILE% | Set-Content -en string \"%AVIUTL_DIR%\A-2.bin\""
+    copy /b /y "%AVIUTL_DIR%\A-1.bin" + "%AVIUTL_DIR%\A-12.bin" + "%AVIUTL_DIR%\A-2.bin" "%AVIUTL_DIR%\aviutl.ini"
+    del "%AVIUTL_DIR%"\*.bin
+
+    echo 拡張編集のインストール
+    call :ADD_INSTALL_LOG "ExEdit install process start."
+    call :ADD_INSTALL_LOG "ExEdit version get start."
+    call :EXEDIT_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ 1 (
+        if %INSTALL_AVIUTL_RC_FLAG% equ 1 (
+            @rem テスト版AviUtlのインストールも行う場合
+            set INSTALL_EXEDIT_RC_FLAG=0
+            call :EXEDIT_GET_LATEST_VER_DATE
+        ) else (
+            call :SHOW_MSG "テスト版拡張編集が見つかりませんでした。" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+    ) else if %ERRORLEVEL% equ -1 (
+        call :ADD_INSTALL_LOG "ExEdit version get failure."
+        call :FINISH_SCRIPT_PROCESS ""
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+    call :ADD_INSTALL_LOG "ExEdit install start."
+    call :EXEDIT_INSTALL
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "ExEdit install failure"
+        call :FINISH_SCRIPT_PROCESS "拡張編集のダウンロードに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+    call :ADD_INSTALL_LOG "ExEdit install process done."
+
+    echo L-SMASHのダウンロード...
+    call :ADD_INSTALL_LOG "L-SMASH install process start."
+    call :FILE_DOWNLOAD "https://pop.4-bit.jp/bin/l-smash/%LSMASH_ZIP%" "%DL_DIR%\%LSMASH_ZIP%"
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "L-SMASH Works download error."
+    ) else (
+        echo L-SMASHのダウンロード完了
+        @rem L-SMASH Worksを展開
+        %SZEXE% x "%DL_DIR%\%LSMASH_ZIP%" -aoa -o"%DL_DIR%"
+        @move "%DL_DIR%\lw*.*" "%PLUGINS_DIR%"
+        call :ADD_INSTALL_LOG "L-SMASH Works install done."
+    )
+
+    @rem エンコーダのインストール
+    call :ENCODERS_INSTALL
+
+    @rem 劇場向け環境構築
+    @rem 劇場向けファイルのDL
+    @rem PSDToolkit
+    set PSDTOOLKIT_VER=
+    call :ADD_INSTALL_LOG "psdtoolkit version get start."
+    call :PSDTOOLKIT_GET_LATEST_VER
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "psdtoolkit version get failure."
+        call :FINISH_SCRIPT_PROCESS "psdtoolkitのバージョン取得に失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+    call :ADD_INSTALL_LOG "psdtoolkit install start."
+    call :PSDTOOLKIT_INSTALL
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "psdtoolkit install failure."
+        call :FINISH_SCRIPT_PROCESS "psdtoolkitのインストールに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+    call :ADD_INSTALL_LOG "padtoolkit install done."
+
+    @rem 風揺れ
+    call :ADD_INSTALL_LOG "WindShk download start."
+    call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/WindShk.zip"  "%DL_DIR%\WindShk.zip"
+    call :ADD_INSTALL_LOG "WindShk download done."
+
+    @rem インク（＋ひょうたん）
+     call :ADD_INSTALL_LOG "InkV2 download start."
+     call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/InkV2.zip" "%DL_DIR%\InkV2.zip"
+     call :ADD_INSTALL_LOG "InkV2 download done."
+
+    @rem 縁取りT
+    call :ADD_INSTALL_LOG "Framing download start."
+    call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/Framing.zip" "%DL_DIR%\Framing.zip"
+    call :ADD_INSTALL_LOG "Framing download done."
+
+    @rem リール回転
+    call :ADD_INSTALL_LOG "ReelRot download start."
+    call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/ReelRot.zip" "%DL_DIR%\ReelRot.zip"
+    call :ADD_INSTALL_LOG "ReelRot download done."
+
+    @rem バニシングポイント2
+    call :ADD_INSTALL_LOG "VanishP2 download start."
+    call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/VanishP2_V2.zip" "%DL_DIR%\VanishP2_V2.zip"
+    call :ADD_INSTALL_LOG "VanishP2 download done."
+
+    @rem ライントーン＆ハーフトーン
+    call :ADD_INSTALL_LOG "LinHal download start."
+    call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/LinHal.zip" "%DL_DIR%\LinHal.zip"
+    call :ADD_INSTALL_LOG "LinHal download done."
+
+    @rem PNG出力
+    call :ADD_INSTALL_LOG "auls_outputpng download start."
+    call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
+    call :ADD_INSTALL_LOG "auls_outputpng download done."
 
 
-@rem 劇場向け環境構築
-@rem 劇場向けファイルのDL
-@rem PSDToolkit
-set PSDTOOLKIT_VER=
-call :PSDTOOLKIT_GET_LATEST_VER
-call :PSDTOOLKIT_INSTALL
+    @rem ティム氏のスクリプトを展開
+    set TIM3_DIR_MK=%SCRIPT_DIR_MK%\ティム氏
+    mkdir %TIM3_DIR_MK%
+    set TIM3_DIR=%SCRIPT_DIR%\ティム氏
+    %SZEXE% x "%DL_DIR%\WindShk.zip" -aoa -o"%DL_DIR%"
+    @move "%DL_DIR%\WindShk\*.*" "%TIM3_DIR%"
+    %SZEXE% x "%DL_DIR%\InkV2.zip" -aoa -o"%TIM3_DIR%"
+    %SZEXE% x "%DL_DIR%\Framing.zip" -aoa -o"%DL_DIR%"
+    @move "%DL_DIR%\Framing\*.*" "%TIM3_DIR%"
+    %SZEXE% x "%DL_DIR%\ReelRot.zip" -aoa -o"%TIM3_DIR%"
+    %SZEXE% x "%DL_DIR%\VanishP2_V2.zip" -aoa -o"%TIM3_DIR%"
+    %SZEXE% x "%DL_DIR%\LinHal.zip" -aoa -o"%TIM3_DIR%"
 
-@rem 風揺れ
-call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/WindShk.zip"  "%DL_DIR%\WindShk.zip"
+    @rem yu_noimage_氏のプラグインを展開
+    %SZEXE% x "%DL_DIR%\auls_outputpng.zip" -aoa -o"%DL_DIR%"
+    @move  "%DL_DIR%\auls_outputpng\*.auf" "%PLUGINS_DIR%"
 
-@rem インク（＋ひょうたん）
-call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/InkV2.zip" "%DL_DIR%\InkV2.zip"
+    @rem 今までインストールしたプラグイン、スクリプトをaviutl.iniに反映
+    call :EXEC_AVIUTL
 
-@rem 縁取りT
-call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/Framing.zip" "%DL_DIR%\Framing.zip"
-
-@rem リール回転
-call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/ReelRot.zip" "%DL_DIR%\ReelRot.zip"
-
-@rem バニシングポイント2
-call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/VanishP2_V2.zip" "%DL_DIR%\VanishP2_V2.zip"
-
-@rem ライントーン＆ハーフトーン
-call :FILE_DOWNLOAD "https://tim3.web.fc2.com/script/LinHal.zip" "%DL_DIR%\LinHal.zip"
-
-@rem PNG出力
-rem 代わりのプラグインを探し中
-rem call :FILE_DOWNLOAD "http://auls.client.jp/plugin/auls_outputpng.zip" "%DL_DIR%\auls_outputpng.zip"
-
-
-@rem ティム氏のスクリプトを展開
-set TIM3_DIR_MK=%SCRIPT_DIR_MK%\ティム氏
-mkdir %TIM3_DIR_MK%
-set TIM3_DIR=%SCRIPT_DIR%\ティム氏
-%SZEXE% x "%DL_DIR%\WindShk.zip" -aoa -o"%DL_DIR%"
-@move "%DL_DIR%\WindShk\*.*" "%TIM3_DIR%"
-%SZEXE% x "%DL_DIR%\InkV2.zip" -aoa -o"%TIM3_DIR%"
-%SZEXE% x "%DL_DIR%\Framing.zip" -aoa -o"%DL_DIR%"
-@move "%DL_DIR%\Framing\*.*" "%TIM3_DIR%"
-%SZEXE% x "%DL_DIR%\ReelRot.zip" -aoa -o"%TIM3_DIR%"
-%SZEXE% x "%DL_DIR%\VanishP2_V2.zip" -aoa -o"%TIM3_DIR%"
-%SZEXE% x "%DL_DIR%\LinHal.zip" -aoa -o"%TIM3_DIR%"
-
-@rem yu_noimage_氏のプラグインを展開
-@rem %SZEXE% x "%DL_DIR%\auls_outputpng.zip" -aoa -o"%DL_DIR%"
-@rem @move  "%DL_DIR%\auls_outputpng\*.auf" "%PLUGINS_DIR%"
-
-@rem 今までインストールしたプラグイン、スクリプトをaviutl.iniに反映
-call :EXEC_AVIUTL
-
-
-@rem 後始末
-call :CLEANUP
-call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
+    call :FINISH_SCRIPT_PROCESS
+    call :SHOW_MSG "インストールが完了しました" vbInformation "情報" "modal"
+    @del %CURRENT_DIR%\%SETUP_LOGFILE% > nul 2>&1
 
 exit
 
@@ -320,11 +496,43 @@ exit
     echo    --rc         テスト版AviUtlと拡張編集をインストールする(存在するもののみ)
     echo         aviutl  テスト版AviUtlをインストールする(存在する場合)
     echo         exedit  テスト版拡張編集をインストールする(存在する場合)
+    echo    --qsv        QSVEncCをインストールする(Intel GPUエンコード)
+    echo    --nvenc      NVEncをインストールする(Nvidia GPUエンコード)
+    echo    --vceenc     VCEEncをインストールする(AMD GPUエンコード)
     echo    --help       ヘルプを表示する
     echo    --version    バージョンを表示する
 exit /b
 
+@rem インストールログへ書き込み
+@rem 改行は出力できないので注意
+@rem 引数: %1-書き込む文字列
+:ADD_INSTALL_LOG
+    echo %~1 >> %CURRENT_DIR%\%SETUP_LOGFILE%
+exit /b
+
+@rem スクリプトの終了
+@rem ダウンロード失敗時に第1引数を設定し、このサブルーチンを呼び出すとメッセージボックスの表示内容を変更できる
+@rem 引数: %1-ダウンロード失敗時の表示メッセージ
+:FINISH_SCRIPT_PROCESS
+    if "%~1" equ "" (
+        set MESSAGE=一部ダウンロードに失敗しました。
+    ) else (
+        set MESSAGE=%~1
+    )
+    if not %DL_FAILURE_LIST_CNT% lss 0 (
+        echo ダウンロード失敗URL一覧 > %CURRENT_DIR%\download_failure_list.log
+        for /l %%i in (0,1,%DL_FAILURE_LIST_CNT%) do (
+            echo !DL_FAILURE_LIST[%%i]! >> %CURRENT_DIR%\download_failure_list.log
+        )
+        call :SHOW_MSG "%MESSAGE% download_failure_list.logを確認してください" vbInformation "情報" "modal"
+    )
+
+    @rem 後始末
+    call :CLEANUP
+exit /b
+
 @rem インストール/アップデート環境構築
+@rem 戻り値 0:成功 -1:失敗
 :WORKING_ENV_SETUP
     if %SEL_UPDATE% equ 0 (
         @rem インストールを選択
@@ -365,9 +573,21 @@ exit /b
         set SVZIP_DIR=!AVIUTL_DIR!\DL_TEMP\7z
         mkdir "!DL_DIR!" "!FILE_DIR!" "!SVZIP_DIR!"
     )
+    
+    rmdir /s /q %TEMP%\%X264GUIEX_ZIP_FILENAME% > nul 2>&1
+    rmdir /s /q %TEMP%\%QSVENCC_ZIP_FILENAME% > nul 2>&1
+    rmdir /s /q %TEMP%\%NVENC_ZIP_FILENAME% > nul 2>&1
+    rmdir /s /q %TEMP%\%VCEENC_ZIP_FILENAME% > nul 2>&1
+    
     call :SZ_SETUP
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     call :HTOX_SETUP
-exit /b
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
+exit /b 0
 
 @rem ファイルから完全一致の行を検索する
 @rem 引数: %1-ファイル %2-検索する文字列
@@ -419,8 +639,16 @@ exit /b
 exit /b 1
 
 @rem ファイルをダウンロードする
-@rem 引数: %1-URL %2-ダウンロードしたファイル名
-:FILE_DOWNLOAD 
+@rem 優先度: 高 = ダウンロードエラーが発生した場合、インストール失敗とみなす
+@rem         低 = ダウンロードエラーが発生した場合、そのまま次の処理を続行し失敗したURLを配列に格納する
+@rem 引数: %1-URL %2-ダウンロードしたファイル名 %3-優先度(高=0, 低=1(デフォルト))
+@rem 戻り値: 0:正常 -1:優先度: 高のエラー -2:優先度: 低のエラー
+:FILE_DOWNLOAD
+    if "%~3" equ "" (
+        set priority=1
+    ) else (
+        set priority=%~3
+    )
     for /l %%a in (0,1,%DL_RETRY%) do (
         if %%a gtr 0 (
             echo Retry %%a/%DL_RETRY%
@@ -429,17 +657,16 @@ exit /b 1
         if !ERRORLEVEL! equ 0  (
             goto :DOWNLOAD_SUCCESS
         )
-        echo retVal:!ERRORLEVEL!
     )
-    call :SHOW_MSG "ファイルのダウンロードに失敗しました" vbCritical "エラー" "modal"
-    if %SEL_UPDATE% equ 0 (
-        rmdir /s /q "%AVIUTL_DIR%"
+    set /a DL_FAILURE_LIST_CNT=!DL_FAILURE_LIST_CNT!+1
+    set DL_FAILURE_LIST[!DL_FAILURE_LIST_CNT!]=%~1
+    if %priority% equ 0 (
+        exit /b -1
     ) else (
-        call :CLEANUP
+        exit /b -2
     )
-    exit
 :DOWNLOAD_SUCCESS
-exit /b
+exit /b 0
 
 @rem メッセージボックスを表示する
 @rem %1-表示テキスト %2-メッセージアイコン(VB) %3-タイトル %4-モーダル設定("modal"でモーダル表示,""で非モーダル表示)
@@ -651,12 +878,14 @@ exit /b 0
 exit /b
 
 @rem 7zの環境構築
+@rem 戻り値 0:成功 -1:失敗
 :SZ_SETUP
     echo 7zのダウンロード...
     powershell -Command "(new-object System.Net.WebClient).DownloadFile(\"https://ja.osdn.net/frs/redir.php?m=jaist^&f=sevenzip%%2F70468%%2F7z1806.msi\",\"%DL_DIR%\7z.msi\")"
     if %ERRORLEVEL% neq 0 (
-        call :CONNECT_ERROR
-        exit
+        set /a DL_FAILURE_LIST_CNT=!DL_FAILURE_LIST_CNT!+1
+        set DL_FAILURE_LIST[!DL_FAILURE_LIST_CNT!]="https://ja.osdn.net/frs/redir.php?m=jaist^&f=sevenzip%%2F70468%%2F7z1806.msi"
+        exit /b -1
     )
     echo 7zのダウンロード完了
     @rem DLした7zを展開
@@ -665,35 +894,173 @@ exit /b
     @rem 7z.exeを変数に格納
     set SZEXE="%SVZIP_DIR%\Files\7-Zip\7z.exe"
     echo 7zの展開完了
-exit /b
+exit /b 0
 
 @rem HtoXの環境構築
+@rem 戻り値 0:成功 -1:失敗
 :HTOX_SETUP
     @rem HtoX(HTML解析ツール)のDL
-    call :FILE_DOWNLOAD "http://win32lab.com/lib/htox4173.exe" "%DL_DIR%\htox4173.exe"
+    call :FILE_DOWNLOAD "http://win32lab.com/lib/htox4173.exe" "%DL_DIR%\htox4173.exe" "0"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     @rem HtoXの自己解凍を実行
     %SZEXE% x "%DL_DIR%\htox4173.exe" -aoa -o"%DL_DIR%"
     set HTOX="%DL_DIR%\HtoX32c.exe"
+exit /b 0
+
+@rem エンコーダのインストールをする
+@rem x264guiExは強制だが、QSV,NV,VCEは選択
+:ENCODERS_INSTALL
+    @rem x264guiExのインストール
+    call :ADD_INSTALL_LOG "x264guiEx install start."
+    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=1V3HyUDZs0m1SNCtGIpanWkCR9v2aGM0M" "%X264GUIEX_ZIP_FILENAME%"
+    if %ERRORLEVEL% equ -1 (
+        call :ADD_INSTALL_LOG "x264guiEx install error."
+        call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    ) else if %ERRORLEVEL% equ -2 (
+        call :ADD_INSTALL_LOG "x264guiEx install error. (required file)"
+        call :FINISH_SCRIPT_PROCESS "x264guiExの必須ファイルのダウンロードに失敗しました。"
+        call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+        rmdir /s /q "%AVIUTL_DIR%"
+        exit
+    )
+    call :ADD_INSTALL_LOG "x264guiEx install done."
+
+    @rem QSVEncCのインストール
+    if %INSTALL_QSV_ENC% equ 1 (
+        call :ADD_INSTALL_LOG "QSVEncC install start."
+        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=18wsDoL8GL4P9fu016wmOjHFKo7kerLHX" "%QSVENCC_ZIP_FILENAME%"
+        if %ERRORLEVEL% equ -1 (
+          call :ADD_INSTALL_LOG "QSVEncC install error."
+            call :FINISH_SCRIPT_PROCESS "QSVEncCのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        ) else if %ERRORLEVEL% equ -2 (
+            call :ADD_INSTALL_LOG "QSVEncC install error. (required file)"
+            call :FINISH_SCRIPT_PROCESS "QSVEncCの必須ファイルのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+        call :ADD_INSTALL_LOG "QSVEncC install done."
+    )
+
+    @rem NVEncのインストール
+    if %INSTALL_NV_ENC% equ 1 (
+        call :ADD_INSTALL_LOG "NVEnc install start."
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1xzPMKYnTqkOlnUHmKk1r0I5zGmgYp3ls" "%NVENC_ZIP_FILENAME%"
+        if %ERRORLEVEL% equ -1 (
+          call :ADD_INSTALL_LOG "NVEnc install error."
+            call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        ) else if %ERRORLEVEL% equ -2 (
+            call :ADD_INSTALL_LOG "NVEnc install error. (required file)"
+            call :FINISH_SCRIPT_PROCESS "NVEncの必須ファイルのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+        call :ADD_INSTALL_LOG "NVEnc install done."
+    )
+
+    @rem VCEEncのインストール
+    if %INSTALL_VCE_ENC% equ 1 (
+        call :ADD_INSTALL_LOG "VCEEnc install start."
+        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1yxCre3AP_QuNv_sWe2V7ZItZqbFI5Ehn" "%VCEENC_ZIP_FILENAME%"
+        if %ERRORLEVEL% equ -1 (
+          call :ADD_INSTALL_LOG "VCEEnc install error."
+            call :FINISH_SCRIPT_PROCESS "VCEEncのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        ) else if %ERRORLEVEL% equ -2 (
+            call :ADD_INSTALL_LOG "VCEEnc install error. (required file)"
+            call :FINISH_SCRIPT_PROCESS "VCEEncの必須ファイルのダウンロードに失敗しました。"
+            call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
+            rmdir /s /q "%AVIUTL_DIR%"
+            exit
+        )
+        call :ADD_INSTALL_LOG "VCEEnc install done."
+    )
 exit /b
 
-@rem x264guiExのインストール
-:X264GUIEX_INSTALL
-    echo x264guiExのダウンロード...
-    call :FILE_DOWNLOAD "https://drive.google.com/uc?id=1fp6i-suNAlwCLsjXovJ-xXuUlNQmMQXK" "%DL_DIR%\%X264GUIEX_ZIP%"
-    echo x264guiExのダウンロード完了
+@rem 選択されたエンコーダをインストールする
+@rem 引数: %1-エンコーダ名 %2-ダウンロードURL %3-ダウンロード保存先
+@rem 戻り値 0:成功 -1:ダウンロード失敗 -2:ファイル不足
+:ENCODER_INSTALL
+    echo %~1のダウンロード...
+    call :FILE_DOWNLOAD %2 "%DL_DIR%\%~3.7z" "0"
+    if %ERRORLEVEL% neq 0 (
+        call :ADD_INSTALL_LOG "%~1 download error."
+        exit /b -1
+    )
+    echo %~1のダウンロード完了
+    %SZEXE% x "%DL_DIR%\%~3.7z" -aoa -o"%TEMP%"
 
-    %SZEXE% x "%DL_DIR%\%X264GUIEX_ZIP%" -aoa -o"%TEMP%"
-    "%TEMP%\x264guiEx_%X264GUIEX_VER%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
-    rmdir /s /q %TEMP%\x264guiEx_%X264GUIEX_VER%
+    for /l %%a in (0,1,%DL_RETRY%) do (
+        if %%a gtr 0 (
+            echo Retry %%a/%DL_RETRY%
+        )
+        "%TEMP%\%~3\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
+        call :ENCODER_REQUIRED_CHECK_FILE
+        if !ERRORLEVEL! equ 0 (
+            rmdir /s /q %TEMP%\%~3
+            exit /b 0
+        )
+    )
+    rmdir /s /q %TEMP%\%~3
+exit /b -2
 
-exit /b
+@rem エンコード必須ファイルに不足が無いかチェックする
+@rem 戻り値 0:不足なし -1:不足あり
+:ENCODER_REQUIRED_CHECK_FILE
+    set REQUIRED_FILE_LIST_CNT=-1
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=ASL.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=CoreAudioToolbox.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=CoreFoundation.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=icudt*.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libdispatch.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuin.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuuc.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=objc.dll
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=muxer*.exe
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=remuxer*.exe
+    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
+    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=timelineeditor*.exe
+
+    for /l %%a in (0,1,!REQUIRED_FILE_LIST_CNT!) do (
+        if not exist "%AVIUTL_DIR%\exe_files\!REQUIRED_FILE_LIST[%%a]!" (
+            exit /b -1
+        )
+    )
+exit /b 0
 
 @rem GitHubの最新リリースを取得
 @rem 引数: %1-URL %2-最新リリーステキスト出力先
-@rem 戻り値 0:成功 -1:引数エラー
+@rem 戻り値 0:成功 -1:引数エラー -2:ネットワーク関係エラー
 :GITHUB_GET_LATEST_RELEASE_VER
     if "%~1" equ "" exit /b -1
-    call :FILE_DOWNLOAD %1 "%DL_DIR%\github_release.html"
+    call :FILE_DOWNLOAD %1 "%DL_DIR%\github_release.html" "0"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -2
+    )
     @rem htmlを解析
     %HTOX% /I8 "%DL_DIR%\github_release.html" > "%FILE_DIR%\htmlparse.txt"
     @rem psdtoolkitの最新バージョン取得
@@ -757,14 +1124,18 @@ exit /b 0
 exit /b
 
 @rem PSDToolkit最新バージョン取得
+@rem 戻り値 0:成功 -1:失敗
 :PSDTOOLKIT_GET_LATEST_VER
     @rem PSDToolkitの最新リリースを取得
     call :GITHUB_GET_LATEST_RELEASE_VER "https://github.com/oov/aviutl_psdtoolkit/releases"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     set PSDTOOLKIT_VER=
     for /f "usebackq tokens=2" %%i in ("%FILE_DIR%\tag.txt") do (
         set PSDTOOLKIT_VER=%%i
     )
-exit /b
+exit /b 0
 
 @rem PSDToolkitアップデートチェック
 @rem 戻り値 0:アップデートなし 1:アップデートあり
@@ -780,8 +1151,12 @@ exit /b
 exit /b 0
 
 @rem PSDToolkitのインストール
+@rem 戻り値 0:成功 -1:失敗
 :PSDTOOLKIT_INSTALL
-    call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/psdtoolkit_%PSDTOOLKIT_VER%.zip" "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip"
+    call :FILE_DOWNLOAD "https://github.com/oov/aviutl_psdtoolkit/releases/download/%PSDTOOLKIT_VER%/psdtoolkit_%PSDTOOLKIT_VER%.zip" "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" "0"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     @rem PSDToolKitを展開
     %SZEXE% x "%DL_DIR%\psdtoolkit_%PSDTOOLKIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 
@@ -796,9 +1171,12 @@ exit /b
 
 @rem AviUtl最新バージョンと更新日を取得
 @rem AVIUTL_VERとAVIUTL_DATEに格納
-@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む)
+@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む) -1:ネットワーク関係エラー
 :AVIUTL_GET_LATEST_VER_DATE
-    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html" "0"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
     findstr /I /R /C:"\<aviutl[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
     if %INSTALL_AVIUTL_RC_FLAG% equ 1 (
@@ -819,9 +1197,12 @@ exit /b
 exit /b 0
 
 @rem AviUtlのアップデートチェック
-@rem 戻り値 0:アップデートなし 1:アップデートあり
+@rem 戻り値 0:アップデートなし 1:アップデートあり -1:ネットワーク関係エラー
 :AVIUTL_UPDATE_CHECK
     call :AVIUTL_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ -1 (
+        exit /b -1
+    )
     if %ERRORLEVEL% equ 1 (
         exit /b 0
     )
@@ -835,8 +1216,12 @@ exit /b 0
 exit /b 0
 
 @rem AviUtlインストール
+@rem 戻り値 0:成功 -1:失敗
 :AVIUTL_INSTALL
-    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_VER%.zip" "%DL_DIR%\%AVIUTL_VER%.zip"
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%AVIUTL_VER%.zip" "%DL_DIR%\%AVIUTL_VER%.zip" "0"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     @rem AviUtlの展開
     %SZEXE% x "%DL_DIR%\%AVIUTL_VER%.zip" -aoa -o"%AVIUTL_DIR%"
     set AVIUTL_DATE=
@@ -864,9 +1249,12 @@ exit /b
 
 @rem 拡張編集の最新バージョンと更新日を取得
 @rem EXEDIT_VERとEXEDIT_DATEに格納
-@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む)
+@rem 戻り値 0:取得成功 1:取得失敗(存在しない場合も含む) -1:ネットワーク関係エラー
 :EXEDIT_GET_LATEST_VER_DATE
-    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html"
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/" "%DL_DIR%\aviutl.html" "0"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     %HTOX% /I8 "%DL_DIR%\aviutl.html" > "%FILE_DIR%\htmlparse.txt"
     findstr /I /R /C:"\<exedit[0-9]." "%FILE_DIR%\htmlparse.txt" > "%FILE_DIR%\list.txt"
     if %INSTALL_EXEDIT_RC_FLAG% equ 1 (
@@ -887,9 +1275,12 @@ exit /b
 exit /b 0
 
 @rem 拡張編集のアップデートチェック
-@rem 戻り値 0:アップデートなし 1:アップデートあり
+@rem 戻り値 0:アップデートなし 1:アップデートあり -1:ネットワーク関係エラー
 :EXEDIT_UPDATE_CHECK
     call :EXEDIT_GET_LATEST_VER_DATE
+    if %ERRORLEVEL% equ -1 (
+        exit /b -1
+    )
     if %ERRORLEVEL% equ 1 (
         exit /b 0
     )
@@ -903,13 +1294,24 @@ exit /b 0
 exit /b 0
 
 @rem 拡張編集インストール
+@rem 戻り値 0:成功 -1:失敗
 :EXEDIT_INSTALL
-    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_VER%.zip" "%DL_DIR%\%EXEDIT_VER%.zip"
+    call :FILE_DOWNLOAD "http://spring-fragrance.mints.ne.jp/aviutl/%EXEDIT_VER%.zip" "%DL_DIR%\%EXEDIT_VER%.zip" "0"
+    if %ERRORLEVEL% neq 0 (
+        exit /b -1
+    )
     @rem 拡張編集の展開
     %SZEXE% x "%DL_DIR%\%EXEDIT_VER%.zip" -aoa -o"%PLUGINS_DIR%"
 exit /b
 
 @rem リリースノート
+@rem 2020/2/24
+@rem     環境構築時にTEMPに各エンコーダのインストーラが残っていた時に削除するように変更
+@rem     QSC, NVEnc, VCEEncのインストールオプションを追加
+@rem     L-SMASH Worksのバージョンをr935-2からr940に変更
+@rem     x264guiExのバージョンを2.59から2.63v2に変更
+@rem     エンコーダでDLされるファイルチェックを追加
+@rem     DL失敗時処理とその周辺処理を変更
 @rem 2020/1/26
 @rem     PNG出力プラグインの公開が停止してたため、DLしないように変更
 @rem 2019/10/22 (v4.1.0)
