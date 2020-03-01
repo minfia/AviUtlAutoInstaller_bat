@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=5.0.0
+set SCRIPT_VER=5.0.1
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -1335,6 +1335,8 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2020/3/1
+@rem     iTunesインストール済みのPCでインストールするとエラーでインストール出来ないのを修正
 @rem 2020/2/24
 @rem     環境構築時にTEMPに各エンコーダのインストーラが残っていた時に削除するように変更
 @rem     QSC, NVEnc, VCEEncのインストールオプションを追加
