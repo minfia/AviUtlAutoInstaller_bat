@@ -1021,32 +1021,62 @@ exit /b -2
 @rem エンコード必須ファイルに不足が無いかチェックする
 @rem 戻り値 0:不足なし -1:不足あり
 :ENCODER_REQUIRED_CHECK_FILE
-    set REQUIRED_FILE_LIST_CNT=-1
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=ASL.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=CoreAudioToolbox.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=CoreFoundation.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=icudt*.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libdispatch.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuin.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=libicuuc.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=objc.dll
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=muxer*.exe
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=remuxer*.exe
-    set /a REQUIRED_FILE_LIST_CNT=!REQUIRED_FILE_LIST_CNT!+1
-    set REQUIRED_FILE_LIST[%REQUIRED_FILE_LIST_CNT%]=timelineeditor*.exe
+    @rem AppleDll
+    set APPLEDLL_FILE_LIST_CNT=-1
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=ASL.dll
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=CoreAudioToolbox.dll
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=CoreFoundation.dll
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=icudt*.dll
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=libdispatch.dll
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=libicuin.dll
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=libicuuc.dll
+    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
+    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=objc.dll
+    @rem L-SMASH
+    set L_SMASH_FILE_LIST_CNT=-1
+    set /a L_SMASH_FILE_LIST_CNT=!L_SMASH_FILE_LIST_CNT!+1
+    set L_SMASH_FILE_LIST[%L_SMASH_FILE_LIST_CNT%]=muxer*.exe
+    set /a L_SMASH_FILE_LIST_CNT=!L_SMASH_FILE_LIST_CNT!+1
+    set L_SMASH_FILE_LIST[%L_SMASH_FILE_LIST_CNT%]=remuxer*.exe
+    set /a L_SMASH_FILE_LIST_CNT=!L_SMASH_FILE_LIST_CNT!+1
+    set L_SMASH_FILE_LIST[%L_SMASH_FILE_LIST_CNT%]=timelineeditor*.exe
 
-    for /l %%a in (0,1,!REQUIRED_FILE_LIST_CNT!) do (
-        if not exist "%AVIUTL_DIR%\exe_files\!REQUIRED_FILE_LIST[%%a]!" (
+    @rem AppleDll
+    set ITUNES_EXIST=0
+    if exist "%ProgramFiles%\iTunes" (
+        set ITUNES_EXIST=1
+        set ITUNES_DIR="%ProgramFiles%\iTunes"
+    )
+    if exist "%ProgramFiles(x86)%\iTunes" (
+        set ITUNES_EXIST=1
+        set ITUNES_DIR="%ProgramFiles(x86)%\iTunes"
+    )
+    if %ITUNES_EXIST% equ 1 (
+        @rem iTunes内検索
+        for /l %%a in (0,1,!APPLEDLL_FILE_LIST_CNT!) do (
+            if not exist ""%ITUNES_DIR%\!APPLEDLL_FILE_LIST[%%a]!"" (
+                exit /b -1
+            )
+        )
+    ) else (
+        @rem AviUul内検索
+        for /l %%a in (0,1,!APPLEDLL_FILE_LIST_CNT!) do (
+            if not exist "%AVIUTL_DIR%\exe_files\!APPLEDLL_FILE_LIST[%%a]!" (
+                exit /b -1
+            )
+        )
+    )
+
+    @rem L-SMASH
+    for /l %%a in (0,1,!L_SMASH_FILE_LIST_CNT!) do (
+        if not exist "%AVIUTL_DIR%\exe_files\!L_SMASH_FILE_LIST[%%a]!" (
             exit /b -1
         )
     )
