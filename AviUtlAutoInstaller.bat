@@ -54,19 +54,19 @@ set LSMASH_VER=r940
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
 @rem x264guiEx(バージョン変更の際は、URLも変更すること)
-set X264GUIEX_VER=2.63v2
+set X264GUIEX_VER=2.64v3
 set X264GUIEX_ZIP_FILENAME=x264guiEx_%X264GUIEX_VER%
 
 @rem QSVEncC(バージョン変更の際は、URLも変更すること)
-set QSVENCC_VER=3.31
+set QSVENCC_VER=4.00
 set QSVENCC_ZIP_FILENAME=QSVEnc_%QSVENCC_VER%
 
 @rem NVEnc(バージョン変更の際は、URLも変更すること)
-set NVENC_VER=4.65
+set NVENC_VER=4.69
 set NVENC_ZIP_FILENAME=NVEnc_%NVENC_VER%
 
 @rem VCEEnc(バージョン変更の際は、URLも変更すること)
-set VCEENC_VER=5.02
+set VCEENC_VER=5.04
 set VCEENC_ZIP_FILENAME=VCEEnc_%VCEENC_VER%
 
 @rem ダウンロード失敗したURL一覧格納配列
@@ -914,7 +914,7 @@ exit /b 0
 :ENCODERS_INSTALL
     @rem x264guiExのインストール
     call :ADD_INSTALL_LOG "x264guiEx install start."
-    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=1V3HyUDZs0m1SNCtGIpanWkCR9v2aGM0M" "%X264GUIEX_ZIP_FILENAME%"
+    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=15IoL3jw1J8QHkoGQvq1Jy7qkujDBZ80E" "%X264GUIEX_ZIP_FILENAME%"
     if %ERRORLEVEL% equ -1 (
         call :ADD_INSTALL_LOG "x264guiEx install error."
         call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
@@ -933,7 +933,7 @@ exit /b 0
     @rem QSVEncCのインストール
     if %INSTALL_QSV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "QSVEncC install start."
-        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=18wsDoL8GL4P9fu016wmOjHFKo7kerLHX" "%QSVENCC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1SNdOcaCXazkdgdeLas-dzF9Rb8oNGjjW" "%QSVENCC_ZIP_FILENAME%"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "QSVEncC install error."
             call :FINISH_SCRIPT_PROCESS "QSVEncCのダウンロードに失敗しました。"
@@ -953,7 +953,7 @@ exit /b 0
     @rem NVEncのインストール
     if %INSTALL_NV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "NVEnc install start."
-        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1xzPMKYnTqkOlnUHmKk1r0I5zGmgYp3ls" "%NVENC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=15MvMTzz4voCR7PBlEPnWNwrYsXtO0HUZ" "%NVENC_ZIP_FILENAME%"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "NVEnc install error."
             call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
@@ -973,7 +973,7 @@ exit /b 0
     @rem VCEEncのインストール
     if %INSTALL_VCE_ENC% equ 1 (
         call :ADD_INSTALL_LOG "VCEEnc install start."
-        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1yxCre3AP_QuNv_sWe2V7ZItZqbFI5Ehn" "%VCEENC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1_hb6NLYeymc8_o-zIOlh80Ldbr_Nih4j" "%VCEENC_ZIP_FILENAME%"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "VCEEnc install error."
             call :FINISH_SCRIPT_PROCESS "VCEEncのダウンロードに失敗しました。"
@@ -1021,24 +1021,6 @@ exit /b -2
 @rem エンコード必須ファイルに不足が無いかチェックする
 @rem 戻り値 0:不足なし -1:不足あり
 :ENCODER_REQUIRED_CHECK_FILE
-    @rem AppleDll
-    set APPLEDLL_FILE_LIST_CNT=-1
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=ASL.dll
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=CoreAudioToolbox.dll
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=CoreFoundation.dll
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=icudt*.dll
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=libdispatch.dll
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=libicuin.dll
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=libicuuc.dll
-    set /a APPLEDLL_FILE_LIST_CNT=!APPLEDLL_FILE_LIST_CNT!+1
-    set APPLEDLL_FILE_LIST[%APPLEDLL_FILE_LIST_CNT%]=objc.dll
     @rem L-SMASH
     set L_SMASH_FILE_LIST_CNT=-1
     set /a L_SMASH_FILE_LIST_CNT=!L_SMASH_FILE_LIST_CNT!+1
@@ -1047,32 +1029,6 @@ exit /b -2
     set L_SMASH_FILE_LIST[%L_SMASH_FILE_LIST_CNT%]=remuxer*.exe
     set /a L_SMASH_FILE_LIST_CNT=!L_SMASH_FILE_LIST_CNT!+1
     set L_SMASH_FILE_LIST[%L_SMASH_FILE_LIST_CNT%]=timelineeditor*.exe
-
-    @rem AppleDll
-    set ITUNES_EXIST=0
-    if exist "%ProgramFiles%\iTunes" (
-        set ITUNES_EXIST=1
-        set ITUNES_DIR="%ProgramFiles%\iTunes"
-    )
-    if exist "%ProgramFiles(x86)%\iTunes" (
-        set ITUNES_EXIST=1
-        set ITUNES_DIR="%ProgramFiles(x86)%\iTunes"
-    )
-    if %ITUNES_EXIST% equ 1 (
-        @rem iTunes内検索
-        for /l %%a in (0,1,!APPLEDLL_FILE_LIST_CNT!) do (
-            if not exist ""%ITUNES_DIR%\!APPLEDLL_FILE_LIST[%%a]!"" (
-                exit /b -1
-            )
-        )
-    ) else (
-        @rem AviUul内検索
-        for /l %%a in (0,1,!APPLEDLL_FILE_LIST_CNT!) do (
-            if not exist "%AVIUTL_DIR%\exe_files\!APPLEDLL_FILE_LIST[%%a]!" (
-                exit /b -1
-            )
-        )
-    )
 
     @rem L-SMASH
     for /l %%a in (0,1,!L_SMASH_FILE_LIST_CNT!) do (
