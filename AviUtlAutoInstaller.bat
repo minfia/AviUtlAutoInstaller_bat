@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=5.1.0
+set SCRIPT_VER=5.1.1
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -953,7 +953,7 @@ exit /b 0
     @rem NVEncのインストール
     if %INSTALL_NV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "NVEnc install start."
-        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=15MvMTzz4voCR7PBlEPnWNwrYsXtO0HUZ" "%NVENC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1iTXWXqYr1uDdJC6Va6DPCgUoRZfcARJY" "%NVENC_ZIP_FILENAME%"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "NVEnc install error."
             call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
@@ -1291,6 +1291,8 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2020/4/26
+@rem     NVEncのURLが変更されていたのを修正
 @rem 2020/4/12
 @rem     各エンコーダを最新に更新
 @rem 2020/3/1
