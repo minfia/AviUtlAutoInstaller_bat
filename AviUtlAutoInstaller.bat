@@ -953,7 +953,7 @@ exit /b 0
     @rem NVEncのインストール
     if %INSTALL_NV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "NVEnc install start."
-        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=15MvMTzz4voCR7PBlEPnWNwrYsXtO0HUZ" "%NVENC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1iTXWXqYr1uDdJC6Va6DPCgUoRZfcARJY" "%NVENC_ZIP_FILENAME%"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "NVEnc install error."
             call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
