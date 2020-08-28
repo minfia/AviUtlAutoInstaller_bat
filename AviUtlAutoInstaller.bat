@@ -54,7 +54,7 @@ set LSMASH_VER=r940
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
 @rem x264guiEx(バージョン変更の際は、URLも変更すること)
-set X264GUIEX_VER=2.64v3
+set X264GUIEX_VER=2.65v2
 set X264GUIEX_ZIP_FILENAME=x264guiEx_%X264GUIEX_VER%
 
 @rem QSVEncC(バージョン変更の際は、URLも変更すること)
@@ -914,7 +914,7 @@ exit /b 0
 :ENCODERS_INSTALL
     @rem x264guiExのインストール
     call :ADD_INSTALL_LOG "x264guiEx install start."
-    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=15IoL3jw1J8QHkoGQvq1Jy7qkujDBZ80E" "%X264GUIEX_ZIP_FILENAME%"
+    call :ENCODER_INSTALL "x264guiEx" "https://dl.dropboxusercontent.com/sh/q6afzrpcrl8nsda/AAAsdMuegINAP07jSPVDOXRka/x264guiEx_2.65v2.zip" "%X264GUIEX_ZIP_FILENAME%"
     if %ERRORLEVEL% equ -1 (
         call :ADD_INSTALL_LOG "x264guiEx install error."
         call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
