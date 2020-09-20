@@ -914,7 +914,7 @@ exit /b 0
 :ENCODERS_INSTALL
     @rem x264guiExのインストール
     call :ADD_INSTALL_LOG "x264guiEx install start."
-    call :ENCODER_INSTALL "x264guiEx" "https://dl.dropboxusercontent.com/sh/q6afzrpcrl8nsda/AAAsdMuegINAP07jSPVDOXRka/x264guiEx_2.65v2.zip" "%X264GUIEX_ZIP_FILENAME%"
+    call :ENCODER_INSTALL "x264guiEx" "https://dl.dropboxusercontent.com/sh/q6afzrpcrl8nsda/AAAsdMuegINAP07jSPVDOXRka/x264guiEx_2.65v2.zip" "%X264GUIEX_ZIP_FILENAME%" "zip"
     if %ERRORLEVEL% equ -1 (
         call :ADD_INSTALL_LOG "x264guiEx install error."
         call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
@@ -933,7 +933,7 @@ exit /b 0
     @rem QSVEncCのインストール
     if %INSTALL_QSV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "QSVEncC install start."
-        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1SNdOcaCXazkdgdeLas-dzF9Rb8oNGjjW" "%QSVENCC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1SNdOcaCXazkdgdeLas-dzF9Rb8oNGjjW" "%QSVENCC_ZIP_FILENAME%" "7z"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "QSVEncC install error."
             call :FINISH_SCRIPT_PROCESS "QSVEncCのダウンロードに失敗しました。"
@@ -953,7 +953,7 @@ exit /b 0
     @rem NVEncのインストール
     if %INSTALL_NV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "NVEnc install start."
-        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1iTXWXqYr1uDdJC6Va6DPCgUoRZfcARJY" "%NVENC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1iTXWXqYr1uDdJC6Va6DPCgUoRZfcARJY" "%NVENC_ZIP_FILENAME%" "7z"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "NVEnc install error."
             call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
@@ -973,7 +973,7 @@ exit /b 0
     @rem VCEEncのインストール
     if %INSTALL_VCE_ENC% equ 1 (
         call :ADD_INSTALL_LOG "VCEEnc install start."
-        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1_hb6NLYeymc8_o-zIOlh80Ldbr_Nih4j" "%VCEENC_ZIP_FILENAME%"
+        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1_hb6NLYeymc8_o-zIOlh80Ldbr_Nih4j" "%VCEENC_ZIP_FILENAME%" "7z"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "VCEEnc install error."
             call :FINISH_SCRIPT_PROCESS "VCEEncのダウンロードに失敗しました。"
@@ -992,17 +992,17 @@ exit /b 0
 exit /b
 
 @rem 選択されたエンコーダをインストールする
-@rem 引数: %1-エンコーダ名 %2-ダウンロードURL %3-ダウンロード保存先
+@rem 引数: %1-エンコーダ名 %2-ダウンロードURL %3-ダウンロード保存先 %4-拡張子
 @rem 戻り値 0:成功 -1:ダウンロード失敗 -2:ファイル不足
 :ENCODER_INSTALL
     echo %~1のダウンロード...
-    call :FILE_DOWNLOAD %2 "%DL_DIR%\%~3.7z" "0"
+    call :FILE_DOWNLOAD %2 "%DL_DIR%\%~3.%~4" "0"
     if %ERRORLEVEL% neq 0 (
         call :ADD_INSTALL_LOG "%~1 download error."
         exit /b -1
     )
     echo %~1のダウンロード完了
-    %SZEXE% x "%DL_DIR%\%~3.7z" -aoa -o"%TEMP%"
+    %SZEXE% x "%DL_DIR%\%~3.%~4" -aoa -o"%TEMP%"
 
     for /l %%a in (0,1,%DL_RETRY%) do (
         if %%a gtr 0 (
