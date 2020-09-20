@@ -58,15 +58,15 @@ set X264GUIEX_VER=2.65v2
 set X264GUIEX_ZIP_FILENAME=x264guiEx_%X264GUIEX_VER%
 
 @rem QSVEncC(バージョン変更の際は、URLも変更すること)
-set QSVENCC_VER=4.00
+set QSVENCC_VER=4.07
 set QSVENCC_ZIP_FILENAME=QSVEnc_%QSVENCC_VER%
 
 @rem NVEnc(バージョン変更の際は、URLも変更すること)
-set NVENC_VER=4.69
+set NVENC_VER=5.15
 set NVENC_ZIP_FILENAME=NVEnc_%NVENC_VER%
 
 @rem VCEEnc(バージョン変更の際は、URLも変更すること)
-set VCEENC_VER=5.04
+set VCEENC_VER=6.04
 set VCEENC_ZIP_FILENAME=VCEEnc_%VCEENC_VER%
 
 @rem ダウンロード失敗したURL一覧格納配列
@@ -933,7 +933,7 @@ exit /b 0
     @rem QSVEncCのインストール
     if %INSTALL_QSV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "QSVEncC install start."
-        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1SNdOcaCXazkdgdeLas-dzF9Rb8oNGjjW" "%QSVENCC_ZIP_FILENAME%" "7z"
+        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1M8G9gfRes7JhX-xGCNW9OwIbzTgXRuX6" "%QSVENCC_ZIP_FILENAME%" "7z"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "QSVEncC install error."
             call :FINISH_SCRIPT_PROCESS "QSVEncCのダウンロードに失敗しました。"
@@ -953,7 +953,7 @@ exit /b 0
     @rem NVEncのインストール
     if %INSTALL_NV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "NVEnc install start."
-        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1iTXWXqYr1uDdJC6Va6DPCgUoRZfcARJY" "%NVENC_ZIP_FILENAME%" "7z"
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1E8OZMftN6FynswbWFVHOTzfdCT47ebbT" "%NVENC_ZIP_FILENAME%" "7z"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "NVEnc install error."
             call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
@@ -973,7 +973,7 @@ exit /b 0
     @rem VCEEncのインストール
     if %INSTALL_VCE_ENC% equ 1 (
         call :ADD_INSTALL_LOG "VCEEnc install start."
-        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1_hb6NLYeymc8_o-zIOlh80Ldbr_Nih4j" "%VCEENC_ZIP_FILENAME%" "7z"
+        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1Ab6QkSeJvVEuUvqUIHHl7JaZl-Fo5xO4" "%VCEENC_ZIP_FILENAME%" "7z"
         if %ERRORLEVEL% equ -1 (
           call :ADD_INSTALL_LOG "VCEEnc install error."
             call :FINISH_SCRIPT_PROCESS "VCEEncのダウンロードに失敗しました。"
