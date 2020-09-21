@@ -915,13 +915,14 @@ exit /b 0
     @rem x264guiExのインストール
     call :ADD_INSTALL_LOG "x264guiEx install start."
     call :ENCODER_INSTALL "x264guiEx" "https://dl.dropboxusercontent.com/sh/q6afzrpcrl8nsda/AAAsdMuegINAP07jSPVDOXRka/x264guiEx_2.65v2.zip" "%X264GUIEX_ZIP_FILENAME%" "zip"
-    if %ERRORLEVEL% equ -1 (
+    set ENCODER_RESULT=!ERRORLEVEL!
+    if !ENCODER_RESULT! equ -1 (
         call :ADD_INSTALL_LOG "x264guiEx install error."
         call :FINISH_SCRIPT_PROCESS "x264guiExのダウンロードに失敗しました。"
         call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
         rmdir /s /q "%AVIUTL_DIR%"
         exit
-    ) else if %ERRORLEVEL% equ -2 (
+    ) else if !ENCODER_RESULT! equ -2 (
         call :ADD_INSTALL_LOG "x264guiEx install error. (required file)"
         call :FINISH_SCRIPT_PROCESS "x264guiExの必須ファイルのダウンロードに失敗しました。"
         call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
@@ -934,13 +935,14 @@ exit /b 0
     if %INSTALL_QSV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "QSVEncC install start."
         call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1M8G9gfRes7JhX-xGCNW9OwIbzTgXRuX6" "%QSVENCC_ZIP_FILENAME%" "7z"
-        if %ERRORLEVEL% equ -1 (
+        set ENCODER_RESULT=!ERRORLEVEL!
+        if !ENCODER_RESULT! equ -1 (
           call :ADD_INSTALL_LOG "QSVEncC install error."
             call :FINISH_SCRIPT_PROCESS "QSVEncCのダウンロードに失敗しました。"
             call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
             rmdir /s /q "%AVIUTL_DIR%"
             exit
-        ) else if %ERRORLEVEL% equ -2 (
+        ) else if !ENCODER_RESULT! equ -2 (
             call :ADD_INSTALL_LOG "QSVEncC install error. (required file)"
             call :FINISH_SCRIPT_PROCESS "QSVEncCの必須ファイルのダウンロードに失敗しました。"
             call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
@@ -954,13 +956,14 @@ exit /b 0
     if %INSTALL_NV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "NVEnc install start."
         call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1E8OZMftN6FynswbWFVHOTzfdCT47ebbT" "%NVENC_ZIP_FILENAME%" "7z"
-        if %ERRORLEVEL% equ -1 (
+        set ENCODER_RESULT=!ERRORLEVEL!
+        if !ENCODER_RESULT! equ -1 (
           call :ADD_INSTALL_LOG "NVEnc install error."
             call :FINISH_SCRIPT_PROCESS "NVEncのダウンロードに失敗しました。"
             call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
             rmdir /s /q "%AVIUTL_DIR%"
             exit
-        ) else if %ERRORLEVEL% equ -2 (
+        ) else if !ENCODER_RESULT! equ -2 (
             call :ADD_INSTALL_LOG "NVEnc install error. (required file)"
             call :FINISH_SCRIPT_PROCESS "NVEncの必須ファイルのダウンロードに失敗しました。"
             call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
@@ -974,13 +977,14 @@ exit /b 0
     if %INSTALL_VCE_ENC% equ 1 (
         call :ADD_INSTALL_LOG "VCEEnc install start."
         call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1Ab6QkSeJvVEuUvqUIHHl7JaZl-Fo5xO4" "%VCEENC_ZIP_FILENAME%" "7z"
-        if %ERRORLEVEL% equ -1 (
+        set ENCODER_RESULT=!ERRORLEVEL!
+        if !ENCODER_RESULT! equ -1 (
           call :ADD_INSTALL_LOG "VCEEnc install error."
             call :FINISH_SCRIPT_PROCESS "VCEEncのダウンロードに失敗しました。"
             call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
             rmdir /s /q "%AVIUTL_DIR%"
             exit
-        ) else if %ERRORLEVEL% equ -2 (
+        ) else if !ENCODER_RESULT! equ -2 (
             call :ADD_INSTALL_LOG "VCEEnc install error. (required file)"
             call :FINISH_SCRIPT_PROCESS "VCEEncの必須ファイルのダウンロードに失敗しました。"
             call :SHOW_MSG "インストールに失敗しました" vbCritical "エラー" "modal"
@@ -995,31 +999,46 @@ exit /b
 @rem 引数: %1-エンコーダ名 %2-ダウンロードURL %3-ダウンロード保存先 %4-拡張子
 @rem 戻り値 0:成功 -1:ダウンロード失敗 -2:ファイル不足
 :ENCODER_INSTALL
-    echo %~1のダウンロード...
-    call :FILE_DOWNLOAD %2 "%DL_DIR%\%~3.%~4" "0"
+    set ENCODER_NAME=%~1
+    set ENCODER_DL_URL=%2
+    set ENCODER_DL_DIR=%~3
+    set ENCODER_EXTENSION=%~4
+    set ENCODER_ERROR_RETRY=0
+:ENCODER_RE_DL
+    echo %ENCODER_NAME%のダウンロード...
+    call :FILE_DOWNLOAD %ENCODER_DL_URL% "%DL_DIR%\%ENCODER_DL_DIR%.%ENCODER_EXTENSION%" "0"
     if %ERRORLEVEL% neq 0 (
-        call :ADD_INSTALL_LOG "%~1 download error."
+        call :ADD_INSTALL_LOG "%ENCODER_NAME% download error."
         exit /b -1
     )
-    echo %~1のダウンロード完了
-    %SZEXE% x "%DL_DIR%\%~3.%~4" -aoa -o"%TEMP%"
+    echo %ENCODER_NAME%のダウンロード完了
+    %SZEXE% x "%DL_DIR%\%ENCODER_DL_DIR%.%ENCODER_EXTENSION%" -aoa -o"%TEMP%"
 
     for /l %%a in (0,1,%DL_RETRY%) do (
         if %%a gtr 0 (
             echo Retry %%a/%DL_RETRY%
         )
-        "%TEMP%\%~3\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
-        call :ENCODER_REQUIRED_CHECK_FILE
+        "%TEMP%\%ENCODER_DL_DIR%\auo_setup.exe" -autorun -nogui -dir "%AVIUTL_DIR%"
+        call :ENCODER_REQUIRED_CHECK_FILE %ENCODER_NAME%
         if !ERRORLEVEL! equ 0 (
-            rmdir /s /q %TEMP%\%~3
+            rmdir /s /q %TEMP%\%ENCODER_DL_DIR%
             exit /b 0
         )
+        if !ERRORLEVEL! equ -2 (
+            set /a ENCODER_ERROR_RETRY=!ENCODER_ERROR_RETRY!+1
+            if !ENCODER_ERROR_RETRY! gtr %DL_RETRY% (
+                exit /b -2
+            )
+            echo Retry encoder !ENCODER_ERROR_RETRY!/%DL_RETRY%
+            goto :ENCODER_RE_DL
+        )
     )
-    rmdir /s /q %TEMP%\%~3
+    rmdir /s /q %TEMP%\%ENCODER_DL_DIR%
 exit /b -2
 
 @rem エンコード必須ファイルに不足が無いかチェックする
-@rem 戻り値 0:不足なし -1:不足あり
+@rem 引数: %1-エンコーダ名
+@rem 戻り値 0:不足なし -1:ファイル不足あり -2:該当エンコーダインストール失敗
 :ENCODER_REQUIRED_CHECK_FILE
     @rem L-SMASH
     set L_SMASH_FILE_LIST_CNT=-1
@@ -1035,6 +1054,31 @@ exit /b -2
         if not exist "%AVIUTL_DIR%\exe_files\!L_SMASH_FILE_LIST[%%a]!" (
             exit /b -1
         )
+    )
+    call :STRSTR %1 "x264guiEx"
+    if %ERRORLEVEL% geq 0 (
+        exit /b 0
+    )
+    call :STRSTR %1 "QSVEnc"
+    if %ERRORLEVEL% geq 0 (
+        if not exist "%AVIUTL_DIR%\exe_files\QSVEncC" (
+            exit /b -2
+        )
+        exit /b 0
+    )
+    call :STRSTR %1 "NVEnc"
+    if %ERRORLEVEL% geq 0 (
+        if not exist "%AVIUTL_DIR%\exe_files\NVEncC" (
+            exit /b -2
+        )
+        exit /b 0
+    )
+    call :STRSTR %1 "VCEEnc"
+    if %ERRORLEVEL% geq 0 (
+        if not exist "%AVIUTL_DIR%\exe_files\VCEEncC" (
+            exit /b -2
+        )
+        exit /b 0
     )
 exit /b 0
 
