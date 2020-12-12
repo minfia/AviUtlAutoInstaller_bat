@@ -398,7 +398,7 @@ exit
     )
 
     @rem エンコーダのインストール
-    call :ENCODERS_INSTALL
+rem    call :ENCODERS_INSTALL
 
     @rem 劇場向け環境構築
     @rem 劇場向けファイルのDL
