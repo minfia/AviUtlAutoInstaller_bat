@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=5.2.1
+set SCRIPT_VER=5.2.2
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -54,7 +54,7 @@ set LSMASH_VER=r940
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
 @rem x264guiEx(バージョン変更の際は、URLも変更すること)
-set X264GUIEX_VER=2.65v2
+set X264GUIEX_VER=2.65
 set X264GUIEX_ZIP_FILENAME=x264guiEx_%X264GUIEX_VER%
 
 @rem QSVEncC(バージョン変更の際は、URLも変更すること)
@@ -398,7 +398,7 @@ exit
     )
 
     @rem エンコーダのインストール
-rem    call :ENCODERS_INSTALL
+    call :ENCODERS_INSTALL
 
     @rem 劇場向け環境構築
     @rem 劇場向けファイルのDL
@@ -914,7 +914,7 @@ exit /b 0
 :ENCODERS_INSTALL
     @rem x264guiExのインストール
     call :ADD_INSTALL_LOG "x264guiEx install start."
-    call :ENCODER_INSTALL "x264guiEx" "https://dl.dropboxusercontent.com/sh/q6afzrpcrl8nsda/AAAsdMuegINAP07jSPVDOXRka/x264guiEx_2.65v2.zip" "%X264GUIEX_ZIP_FILENAME%" "zip"
+    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=1RJYjuceER29j_DMeFunxiP8RBKyJ246E" "%X264GUIEX_ZIP_FILENAME%" "zip"
     set ENCODER_RESULT=!ERRORLEVEL!
     if !ENCODER_RESULT! equ -1 (
         call :ADD_INSTALL_LOG "x264guiEx install error."
@@ -1335,6 +1335,10 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2020/12/14
+@rem     x264guiExのリンク変更
+@rem 2020/12/13
+@rem     エンコーダインストール関連の処理を除外
 @rem 2020/9/21
 @rem     エンコーダインストール関連の処理を修正
 @rem 2020/8/29
