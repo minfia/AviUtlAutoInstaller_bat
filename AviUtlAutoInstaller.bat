@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=5.2.1
+set SCRIPT_VER=5.2.2
 
 @rem PowerShellのバージョンチェック(3以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -1335,6 +1335,10 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2020/12/14
+@rem     x264guiExのリンク変更
+@rem 2020/12/13
+@rem     エンコーダインストール関連の処理を除外
 @rem 2020/9/21
 @rem     エンコーダインストール関連の処理を修正
 @rem 2020/8/29
