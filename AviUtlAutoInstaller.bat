@@ -29,12 +29,12 @@ title AviUtl Auto Installer
 
 set SCRIPT_VER=5.2.2
 
-@rem PowerShellのバージョンチェック(3以上)
+@rem PowerShellのバージョンチェック(4以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
     set PSVER=%%a
 )
-if not %PSVER% geq 3 (
-    call :SHOW_MSG "PowerShellのバージョンが3以上である必要があります" vbCritical "エラー" "modal"
+if not %PSVER% geq 4 (
+    call :SHOW_MSG "PowerShellのバージョンが4以上である必要があります" vbCritical "エラー" "modal"
     exit
 )
 
