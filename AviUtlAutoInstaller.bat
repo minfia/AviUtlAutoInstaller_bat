@@ -27,7 +27,7 @@ setlocal ENABLEDELAYEDEXPANSION
 
 title AviUtl Auto Installer
 
-set SCRIPT_VER=5.2.3
+set SCRIPT_VER=5.2.4
 
 @rem PowerShellのバージョンチェック(4以上)
 for /f "usebackq" %%a in (`powershell -Command "(Get-Host).version"`) do (
@@ -54,19 +54,19 @@ set LSMASH_VER=r940
 set LSMASH_ZIP=L-SMASH_Works_%LSMASH_VER%_plugins.zip
 
 @rem x264guiEx(バージョン変更の際は、URLも変更すること)
-set X264GUIEX_VER=2.65
+set X264GUIEX_VER=2.66
 set X264GUIEX_ZIP_FILENAME=x264guiEx_%X264GUIEX_VER%
 
 @rem QSVEncC(バージョン変更の際は、URLも変更すること)
-set QSVENCC_VER=4.07
+set QSVENCC_VER=4.12
 set QSVENCC_ZIP_FILENAME=QSVEnc_%QSVENCC_VER%
 
 @rem NVEnc(バージョン変更の際は、URLも変更すること)
-set NVENC_VER=5.15
+set NVENC_VER=5.28
 set NVENC_ZIP_FILENAME=NVEnc_%NVENC_VER%
 
 @rem VCEEnc(バージョン変更の際は、URLも変更すること)
-set VCEENC_VER=6.04
+set VCEENC_VER=6.08
 set VCEENC_ZIP_FILENAME=VCEEnc_%VCEENC_VER%
 
 @rem ダウンロード失敗したURL一覧格納配列
@@ -914,7 +914,7 @@ exit /b 0
 :ENCODERS_INSTALL
     @rem x264guiExのインストール
     call :ADD_INSTALL_LOG "x264guiEx install start."
-    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=1RJYjuceER29j_DMeFunxiP8RBKyJ246E" "%X264GUIEX_ZIP_FILENAME%" "zip"
+    call :ENCODER_INSTALL "x264guiEx" "https://drive.google.com/uc?id=1Qk8zBzFhN9PpcU6D2xWG0Rz5swLVLrLJ" "%X264GUIEX_ZIP_FILENAME%" "zip"
     set ENCODER_RESULT=!ERRORLEVEL!
     if !ENCODER_RESULT! equ -1 (
         call :ADD_INSTALL_LOG "x264guiEx install error."
@@ -934,7 +934,7 @@ exit /b 0
     @rem QSVEncCのインストール
     if %INSTALL_QSV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "QSVEncC install start."
-        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1M8G9gfRes7JhX-xGCNW9OwIbzTgXRuX6" "%QSVENCC_ZIP_FILENAME%" "7z"
+        call :ENCODER_INSTALL "QSVEncC" "https://drive.google.com/uc?id=1y6Qi3Zqvfs3s0fPV9zlt7S9B2WHk8X-G" "%QSVENCC_ZIP_FILENAME%" "7z"
         set ENCODER_RESULT=!ERRORLEVEL!
         if !ENCODER_RESULT! equ -1 (
           call :ADD_INSTALL_LOG "QSVEncC install error."
@@ -955,7 +955,7 @@ exit /b 0
     @rem NVEncのインストール
     if %INSTALL_NV_ENC% equ 1 (
         call :ADD_INSTALL_LOG "NVEnc install start."
-        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1E8OZMftN6FynswbWFVHOTzfdCT47ebbT" "%NVENC_ZIP_FILENAME%" "7z"
+        call :ENCODER_INSTALL "NVEnc" "https://drive.google.com/uc?id=1tYS4XY5gcz6Em80cSdIFqD1VU9fHslZj" "%NVENC_ZIP_FILENAME%" "7z"
         set ENCODER_RESULT=!ERRORLEVEL!
         if !ENCODER_RESULT! equ -1 (
           call :ADD_INSTALL_LOG "NVEnc install error."
@@ -976,7 +976,7 @@ exit /b 0
     @rem VCEEncのインストール
     if %INSTALL_VCE_ENC% equ 1 (
         call :ADD_INSTALL_LOG "VCEEnc install start."
-        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1Ab6QkSeJvVEuUvqUIHHl7JaZl-Fo5xO4" "%VCEENC_ZIP_FILENAME%" "7z"
+        call :ENCODER_INSTALL "VCEEnc" "https://drive.google.com/uc?id=1uqS3NHoVnP0Eza4P0aEyb17u4C-RJBCQ" "%VCEENC_ZIP_FILENAME%" "7z"
         set ENCODER_RESULT=!ERRORLEVEL!
         if !ENCODER_RESULT! equ -1 (
           call :ADD_INSTALL_LOG "VCEEnc install error."
@@ -1335,6 +1335,8 @@ exit /b 0
 exit /b
 
 @rem リリースノート
+@rem 2021/3/18
+@rem     各エンコーダのバージョンを更新
 @rem 2021/1/4
 @rem     PowerShellのチェックするバージョンを変更
 @rem 2020/12/14
